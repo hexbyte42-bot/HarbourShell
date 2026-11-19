@@ -229,8 +229,8 @@ fn main() -> Result<(), String> {
     // Fonts, theme, assets.
     let mut fs = FontSystem::new();
     fs.load_font(load_mplus_f12r());
-    // Body text: Shinonome 12 dot (6x12 Latin, 12x12 Japanese) (M+ J12 if Shinonome is missing).
-    if fs.load_jis_font("assets/fonts/shnmk12.bdf").is_ok() {
+    // Body text: Shinonome 6x12 Latin + Fusion Pixel 12px (Unicode) for wide chars.
+    if fs.load_cjk_font("assets/fonts/fusion-pixel-12px-zh_hk.bdf").is_ok() {
         fs.jis_height = 12;
         fs.jis_dy = 1;
         match harbour_shell::bdf::BdfFont::load("assets/fonts/shnm6x12r.bdf") {
@@ -240,8 +240,8 @@ fn main() -> Result<(), String> {
             }
             Err(e) => eprintln!("[font] shnm6x12r.bdf: {e}"),
         }
-    } else if let Err(e) = fs.load_jis_font("assets/fonts/mplus_j12r.bdf") {
-        eprintln!("[font] JIS BDF load failed: {e}");
+    } else {
+        eprintln!("[font] CJK BDF load failed");
     }
     let mut assets = AssetStore::new(&texture_creator)?;
     // Built-in app packages: apps/<id>/<id>.desktop, icon.png and res/ (see launcher::packages).
