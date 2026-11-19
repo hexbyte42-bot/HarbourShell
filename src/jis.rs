@@ -101,3 +101,21 @@ fn normalize_half_kana(ch: char) -> char {
     }
     ch
 }
+
+#[cfg(test)]
+mod body_font_tests {
+    #[test]
+    fn chinese_chars_beyond_jis_have_glyphs_in_the_body_font() {
+        // These Chinese / Cantonese characters are outside JIS X 0208, so the old
+        // Shinonome face drew them as boxes. The body font is Unicode-encoded
+        // (Fusion Pixel) now: each must exist under its own code point.
+        let font = crate::bdf::BdfFont::load(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/fonts/fusion-pixel-12px-zh_hk.bdf"
+        ))
+        .unwrap();
+        for c in "吧呢嗎嘅咗冇啲佢".chars() {
+            assert!(font.glyph_unicode(c as u32).is_some(), "{c} has no glyph in the Fusion Pixel body font");
+        }
+    }
+}
