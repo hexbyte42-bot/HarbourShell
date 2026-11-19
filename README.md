@@ -5,6 +5,7 @@ A home screen and app set for the **M5Stack Cardputer Zero**.
 <p><img src="docs/screenshots/home.png" width="320" alt="Home"> <img src="docs/screenshots/settings.png" width="320" alt="Settings"></p>
 <p><img src="docs/screenshots/radio.png" width="320" alt="Radio"> <img src="docs/screenshots/infoscope.png" width="320" alt="Infoscope"></p>
 <p><img src="docs/screenshots/worldclock.png" width="320" alt="World Clock"> <img src="docs/screenshots/lock.png" width="320" alt="Lock screen"></p>
+<p><img src="docs/screenshots/paint.png" width="320" alt="Paint"> <img src="docs/screenshots/camera.png" width="320" alt="Camera"></p>
 
 ## Install
 
