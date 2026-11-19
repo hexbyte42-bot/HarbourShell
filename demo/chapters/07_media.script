@@ -1,0 +1,17 @@
+# Ch.7 Media: Music, Voice Memo, Images, Camera.
+# DEVICE ONLY: Voice Memo (microphone + playback) and Camera (live dithered preview) need real hardware; the mock shows
+# the app's "not available" state, which is fine as a placeholder but cannot be filmed as a feature.
+goto:Music,wait:500,Return,wait:1800
+Down,wait:600,Return,wait:2000
+hold:Escape:1100,wait:900
+goto:Voice Memo,wait:500,Return,wait:1500
+# DEVICE ONLY: Return starts recording; the Esc hold below stops+saves (play it back from the Files tab by hand if wanted)
+Return,wait:3000
+# leaving while recording asks "Stop, save the file and leave?": Return = Stop
+hold:Escape:1100,wait:1000,Return,wait:1200
+goto:Images,wait:500,Return,wait:1500
+Right,wait:1200,Right,wait:1200,Tab,wait:1500
+hold:Escape:1100,wait:900
+goto:Camera,wait:500,Return,wait:3000
+# DEVICE ONLY: live preview; Return takes a photo
+hold:Escape:1100,wait:900

@@ -1,0 +1,4 @@
+# Ch.12 End: the Esc long-press escape hatch from an app, back to Home, final palette.
+goto:Terminal,wait:500,Return,wait:1500
+hold:Escape:1100,wait:1500
+theme:0,wait:2500

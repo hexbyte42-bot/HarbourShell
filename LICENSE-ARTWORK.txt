@@ -1,0 +1,18 @@
+Harbour Shell - artwork licence (this file does not change the MPL-2.0 in LICENSE)
+
+Copyright (c) 2026 kurogedelic. All Rights Reserved.
+
+This applies to the author's own artwork in this repository: the app icons, status-bar icons, UI widget images
+and parts, the boot splash, the 7-segment atlases, the Cavs font, the theme screenshots, and the generated tables
+derived from them (src/generated/statusbar.rs):
+
+  assets/images/ and the images in apps/ (each app's icon.png and res/) (except where THIRD_PARTY.md says
+  otherwise), assets/atlas/, assets/fonts/Cavs.fnt, docs/screenshots/
+
+Only the finished assets are published. You may use them unchanged as part of Harbour Shell (running,
+building and redistributing this project as a whole, with this notice). You may NOT reuse, extract, modify or
+redistribute them outside this project, or use them in other products, without written permission from the author.
+The drawing sources and working files are not published.
+
+The MPL-2.0 (LICENSE) covers the source code files only. It does not grant any rights to the artwork above.
+Third-party material (fonts, data) keeps its own terms: see THIRD_PARTY.md.

@@ -1,0 +1,26 @@
+# Harbour Shell
+
+A home screen and app set for the **M5Stack Cardputer Zero**.
+
+<p><img src="docs/screenshots/home.png" width="320" alt="Home"> <img src="docs/screenshots/settings.png" width="320" alt="Settings"></p>
+<p><img src="docs/screenshots/radio.png" width="320" alt="Radio"> <img src="docs/screenshots/infoscope.png" width="320" alt="Infoscope"></p>
+<p><img src="docs/screenshots/worldclock.png" width="320" alt="World Clock"> <img src="docs/screenshots/lock.png" width="320" alt="Lock screen"></p>
+
+## Install
+
+On the Cardputer Zero:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kurogedelic/HarbourShell/main/install.sh | sh
+```
+
+Back to the official launcher at any time: `harbourctl official`.
+
+## More
+
+- [Wiki](https://github.com/kurogedelic/HarbourShell/wiki): keys, apps, settings, Japanese input, troubleshooting
+- [Building from source](docs/HARBOUR-SHELL.md)
+
+## License
+
+Code: MPL-2.0. Fonts and other third-party parts keep their own licences: see [NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md).

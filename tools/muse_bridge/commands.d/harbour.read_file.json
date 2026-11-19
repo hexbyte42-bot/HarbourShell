@@ -1,0 +1,14 @@
+{
+  "description": "Harbour Shell: Read a text file under the user's home directory (at most 16 KB).",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "read_file"
+  ],
+  "required": {
+    "path": {
+      "description": "The path argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "timeout_ms": 15000
+}

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harbour Palette Playground</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f4f1ea; --fg:#222; --card:#fff; --line:#d6d0c4; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1d1b18; --fg:#eee; --card:#2a2723; --line:#454038; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system,system-ui,sans-serif; }
+  h1 { font-size:18px; margin:0 0 12px; }
+  .layout { display:grid; grid-template-columns: minmax(0,1fr) 340px; gap:16px; align-items:start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .screens { display:flex; flex-direction:column; gap:12px; }
+  canvas { width:100%; max-width:960px; image-rendering:pixelated; border-radius:10px; display:block; background:#000; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  button, select { font:inherit; padding:4px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); cursor:pointer; }
+  button.primary { background:#2a62d9; color:#fff; border-color:#2a62d9; }
+  .tones { display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin:8px 0 12px; }
+  .tone { text-align:center; font-size:11px; }
+  .tone input[type=color] { width:100%; height:44px; padding:0; border:1px solid var(--line); border-radius:6px; background:none; cursor:pointer; }
+  .tone code { display:block; margin-top:2px; }
+  table.roles { width:100%; border-collapse:collapse; font-size:13px; }
+  table.roles td { padding:3px 0; }
+  table.roles td:last-child { text-align:right; }
+  .swatch { display:inline-block; width:12px; height:12px; border:1px solid #0006; vertical-align:-1px; margin-right:6px; }
+  textarea { width:100%; height:150px; font:12px ui-monospace,Menlo,monospace; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px; }
+  .hint { font-size:12px; opacity:.7; }
+</style>
+</head>
+<body>
+<h1>Harbour Palette Playground</h1>
+<div class="layout">
+  <div class="screens">
+    <canvas id="home" width="320" height="170"></canvas>
+    <canvas id="settings" width="320" height="170"></canvas>
+  </div>
+  <div class="card">
+    <div class="row">
+      <select id="preset"></select>
+      <button id="invert" class="primary" title="トーンの並びを反転(黒↔白, A↔C)">Invert</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="tones" id="tones"></div>
+    <table class="roles" id="roles"></table>
+    <p class="hint">役割ごとにどのトーンを使うか選べます。基本ルール: 背景は 3/4 のトーン、いちばん明るいトーンはハイライト(選択)だけ。</p>
+    <div class="row"><button id="copy">YAML をコピー</button><span class="hint" id="copied"></span></div>
+    <textarea id="yaml" readonly></textarea>
+  </div>
+</div>
+
+<script>
+"use strict";
+// Five tones per palette: black, A, B, C, white.
+const PRESETS = {
+  "Amber": ["#110700", "#482008", "#975012", "#E58E2D", "#FFE0A0"],
+  "Paper":          ["#062027", "#17617D", "#399FC2", "#7AD2FD", "#D7F6FF"],
+  "Mobile":         ["#0C1511", "#2A4B3D", "#7E955B", "#B1C594", "#EBEEC0"],
+  "Terminal":       ["#010A02", "#0B3D1A", "#1FA043", "#59F07F", "#D3FFDF"],
+};
+const TONE_NAMES = ["黒", "A", "B", "C", "白"];
+// Role -> tone index. Default: background = C (3/4), text = black, highlight plate = white.
+const ROLE_LABELS = {
+  bg: "背景", ink: "文字・線", muted: "薄い文字・罫線", face: "ウィンドウ面", hi: "ハイライト面", hiInk: "ハイライト文字", bar: "メニューバー",
+};
+const DEFAULT_ROLES = { bg: 3, ink: 0, muted: 2, face: 3, hi: 4, hiInk: 0, bar: 3 };
+
+let tones = [], roles = {}, presetName = "";
+const $ = (id) => document.getElementById(id);
+
+function loadPreset(name) {
+  presetName = name;
+  tones = PRESETS[name].slice();
+  roles = { ...DEFAULT_ROLES };
+  render();
+}
+function invert() {
+  tones.reverse();               // tone i -> 4 - i: black <-> white, A <-> C
+  render();
+}
+function color(role) { return tones[roles[role]]; }
+
+// ---- UI --------------------------------------------------------------
+function buildControls() {
+  const sel = $("preset");
+  for (const name of Object.keys(PRESETS)) sel.add(new Option(name, name));
+  sel.onchange = () => loadPreset(sel.value);
+  $("invert").onclick = invert;
+  $("reset").onclick = () => loadPreset(sel.value);
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("yaml").value); $("copied").textContent = "コピーしました"; }
+    catch { $("yaml").select(); $("copied").textContent = "選択しました。⌘C でコピー"; }
+    setTimeout(() => $("copied").textContent = "", 2500);
+  };
+  const t = $("tones");
+  TONE_NAMES.forEach((n, i) => {
+    const d = document.createElement("div"); d.className = "tone";
+    d.innerHTML = `<input type="color" data-i="${i}"><b>${n}</b><code></code>`;
+    t.append(d);
+    d.querySelector("input").oninput = (e) => { tones[i] = e.target.value.toUpperCase(); render(); };
+  });
+  const r = $("roles");
+  for (const k of Object.keys(ROLE_LABELS)) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><span class="swatch" id="sw-${k}"></span>${ROLE_LABELS[k]}</td><td><select data-role="${k}">${TONE_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join("")}</select></td>`;
+    r.append(tr);
+    tr.querySelector("select").onchange = (e) => { roles[k] = +e.target.value; render(); };
+  }
+}
+function syncControls() {
+  document.querySelectorAll(".tone").forEach((d, i) => {
+    d.querySelector("input").value = tones[i].toLowerCase();
+    d.querySelector("code").textContent = tones[i];
+  });
+  for (const k of Object.keys(ROLE_LABELS)) {
+    document.querySelector(`select[data-role="${k}"]`).value = roles[k];
+    $("sw-" + k).style.background = color(k);
+  }
+  $("yaml").value =
+`name: custom
+colors:
+  palette:
+${tones.map((c, i) => `    - "${c}"   # ${TONE_NAMES[i]}`).join("\n")}
+  background: "${color("bg")}"
+  foreground: "${color("ink")}"
+  muted: "${color("muted")}"
+  topbar_bg: "${color("bar")}"
+  widget_face: "${color("face")}"
+  select_bg: "${color("hi")}"      # brightest tone: highlights only
+  select_fg: "${color("hiInk")}"`;
+}
+
+// ---- icons ------------------------------------------------------------
+const ICON_FILES = ["apps/settings/icon.png", "apps/terminal/icon.png", "apps/texteditor/icon.png", "apps/calculator/icon.png", "apps/clock/icon.png", "apps/monitor/icon.png", "apps/snake/icon.png", "apps/files/icon.png", "apps/timer/icon.png", "apps/music/icon.png", "apps/images/icon.png", "assets/images/icons/Folder.png"];
+const LABELS = ["Settings", "Terminal", "Text Editor", "Calculator", "Clock", "Monitor", "Snake", "Files", "Timer", "Music", "Images", "Recent"];
+const icons = {};
+let pending = ICON_FILES.length;
+ICON_FILES.forEach((f) => {
+  const img = new Image();
+  img.onload = () => { icons[f] = img; if (--pending === 0) render(); };
+  let tries = 0;
+  img.onerror = () => {
+    if (tries++ < 2) { img.src = `../${f}?retry=${tries}`; return; }
+    if (--pending === 0) render();
+  };
+  img.src = `../${f}`;
+});
+function tinted(img, col) {
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const x = c.getContext("2d"); x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = "source-in"; x.fillStyle = col; x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
+// ---- drawing (320x170 logical pixels) ---------------------------------
+const FONT = '11px "SF Mono", Menlo, ui-monospace, monospace';
+function text(ctx, s, x, y, col, align = "left") {
+  ctx.fillStyle = col; ctx.font = FONT; ctx.textAlign = align; ctx.textBaseline = "alphabetic";
+  ctx.fillText(s, x, y);
+}
+function rect(ctx, x, y, w, h, col) { ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
+function frame(ctx, x, y, w, h, col) {
+  rect(ctx, x, y, w, 1, col); rect(ctx, x, y + h - 1, w, 1, col);
+  rect(ctx, x, y, 1, h, col); rect(ctx, x + w - 1, y, 1, h, col);
+}
+function menuBar(ctx, title) {
+  rect(ctx, 0, 0, 320, 16, color("bar"));
+  rect(ctx, 0, 15, 320, 1, color("ink"));
+  text(ctx, title, 6, 12, color("ink"));
+  text(ctx, "76%  22:28", 314, 12, color("ink"), "right");
+}
+
+function drawHome() {
+  const ctx = $("home").getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  rect(ctx, 0, 0, 320, 170, color("bg"));
+  menuBar(ctx, "⚓ Harbour");
+  const SEL = 0;
+  for (let i = 0; i < 12; i++) {
+    const cx = 4 + (i % 4) * 76, cy = 20 + Math.floor(i / 4) * 48;
+    const tile = [cx, cy, 72, 44];
+    const sel = i === SEL;
+    if (sel) rect(ctx, ...tile, color("hi"));
+    const ink = sel ? color("hiInk") : color("ink");
+    const img = icons[ICON_FILES[i]];
+    if (img) ctx.drawImage(tinted(img, ink), cx + 20, cy + 1, 32, 32);
+    ctx.font = FONT;
+    text(ctx, LABELS[i], cx + 36, cy + 42, ink, "center");
+  }
+  // scroll bar
+  rect(ctx, 312, 20, 4, 140, color("muted"));
+  rect(ctx, 312, 20, 4, 46, color("ink"));
+}
+
+function drawSettings() {
+  const ctx = $("settings").getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  rect(ctx, 0, 0, 320, 170, color("bg"));
+  menuBar(ctx, "⚓ Harbour");
+  // window
+  const wx = 1, wy = 17, ww = 318, wh = 152;
+  rect(ctx, wx, wy, ww, wh, color("face"));
+  frame(ctx, wx, wy, ww, wh, color("ink"));
+  rect(ctx, wx + 1, wy + 16, ww - 2, 1, color("ink"));
+  for (const o of [4, 8, 12]) { rect(ctx, wx + 21, wy + o, 108, 1, color("muted")); rect(ctx, wx + ww - 129, wy + o, 108, 1, color("muted")); }
+  frame(ctx, wx + 6, wy + 4, 8, 8, color("ink"));
+  rect(ctx, 120, wy + 2, 80, 13, color("face"));
+  text(ctx, "Settings", 160, wy + 12, color("ink"), "center");
+  // sidebar
+  const sx = wx + 1, sy = wy + 17;
+  rect(ctx, sx, sy, 80, wh - 18, color("bg"));
+  rect(ctx, sx + 80, sy, 1, wh - 18, color("muted"));
+  const sections = ["Display", "Audio", "Network", "Bluetooth", "ExtPort", "System", "Apps", "Software"];
+  sections.forEach((s, i) => {
+    const y = sy + 2 + i * 16;
+    if (i === 0) rect(ctx, sx + 2, y, 74, 14, color("hi"));
+    text(ctx, s, sx + 8, y + 11, i === 0 ? color("hiInk") : color("ink"));
+  });
+  // rows
+  const rows = [["Brightness", "80%"], ["Screen off", "30 sec"], ["Lock screen off", "8 sec"], ["Theme", "Paper"], ["Title font", "Chicago"]];
+  rows.forEach(([k, v], i) => {
+    const y = sy + 2 + i * 16, x0 = sx + 86, x1 = wx + ww - 6;
+    rect(ctx, x0, y + 15, x1 - x0, 1, color("muted"));
+    text(ctx, k, x0 + 4, y + 11, color("ink"));
+    if (i === 0) {
+      rect(ctx, 168, y + 6, 106, 4, color("muted"));
+      rect(ctx, 168, y + 6, 86, 4, color("ink"));
+      text(ctx, v, x1 - 2, y + 11, color("ink"), "right");
+    } else {
+      frame(ctx, 208, y + 1, 105, 13, color("ink"));
+      text(ctx, v, 214, y + 11, color("ink"));
+      text(ctx, "▾", 305, y + 11, color("ink"), "center");
+    }
+  });
+}
+
+function render() {
+  syncControls();
+  drawHome();
+  drawSettings();
+}
+
+buildControls();
+loadPreset("Amber");
+$("preset").value = "Amber";
+</script>
+</body>
+</html>

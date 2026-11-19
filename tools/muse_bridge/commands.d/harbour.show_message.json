@@ -1,0 +1,14 @@
+{
+  "description": "Harbour Shell: Show a short message (toast) at the bottom of the screen.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "show_message"
+  ],
+  "required": {
+    "text": {
+      "description": "The text argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "timeout_ms": 15000
+}

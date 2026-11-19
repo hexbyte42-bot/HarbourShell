@@ -1,0 +1,9 @@
+{
+  "description": "Harbour Shell: Battery, network addresses, uptime, temperature, memory, storage.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "system_info"
+  ],
+  "required": {},
+  "timeout_ms": 15000
+}

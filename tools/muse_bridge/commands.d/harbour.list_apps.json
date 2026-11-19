@@ -1,0 +1,9 @@
+{
+  "description": "Harbour Shell: List the apps that can be launched (names).",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "list_apps"
+  ],
+  "required": {},
+  "timeout_ms": 15000
+}

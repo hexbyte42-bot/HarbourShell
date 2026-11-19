@@ -1,0 +1,31 @@
+[package]
+name = "harbour-shell"
+version = "0.1.0"
+license = "MPL-2.0"
+edition = "2021"
+authors = ["kurogedelic"]
+description = "Harbour Shell: a retro 1-bit home screen and app set for the M5Stack Cardputer Zero"
+default-run = "harbour-shell"
+
+[lib]
+name = "harbour_shell"
+path = "src/lib.rs"
+
+[dependencies]
+chrono = "0.4"
+chrono-tz = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+libc = "0.2"
+
+[target.'cfg(not(target_os = "emscripten"))'.dependencies]
+sdl2 = { version = "0.38", features = ["use-pkgconfig", "image"] }
+
+# Web build: SDL2 / SDL2_image come from Emscripten ports (see web/build.sh).
+[target.'cfg(target_os = "emscripten")'.dependencies]
+sdl2 = { version = "0.38", features = ["image"] }
+
+[profile.release]
+opt-level = 2
+lto = true

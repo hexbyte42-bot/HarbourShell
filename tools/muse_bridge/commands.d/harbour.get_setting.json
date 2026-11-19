@@ -1,0 +1,15 @@
+{
+  "description": "Harbour Shell: Read a device setting. Names: brightness, volume, mute, theme, invert, statusbar, screen_off, lock_style, auto_lock, lock_screen_off, lock_date, lock_battery. Omit name to read all.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "get_setting"
+  ],
+  "optional": {
+    "name": {
+      "description": "The name argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "required": {},
+  "timeout_ms": 15000
+}

@@ -1,0 +1,19 @@
+# Ch.5 Work tools A: Terminal, Text Editor (+ unsaved dialog), Calculator, Sheet, Files.
+# goto:Name jumps the Home selection (robust against tile order); leave each app with an Esc hold (gauge).
+goto:Terminal,wait:500,Return,wait:1500
+text:uname -s,Return,wait:900,text:echo Harbour on Cardputer Zero,Return,wait:1500
+hold:Escape:1100,wait:900
+goto:Text Editor,wait:500,Return,wait:900
+text:Hello from the Cardputer Zero.,wait:1200,Return,text:Harbour Shell,wait:1200
+# unsaved-changes card (focus starts on Save): show it, then pick "Don't Save"
+Escape,wait:1800
+Left,Left,wait:600,Return,wait:1000
+goto:Calculator,wait:500,Return,wait:900
+text:12*34,Return,wait:1000,text:+66,Return,wait:1500
+hold:Escape:1100,wait:900
+goto:Sheet,wait:500,Return,wait:1000
+text:10,Return,text:20,Return,text:=A1+A2,Return,wait:1500
+hold:Escape:1100,wait:900
+goto:Files,wait:500,Return,wait:1500
+Down,wait:500,Down,wait:500,Up,wait:800
+hold:Escape:1100,wait:900

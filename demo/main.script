@@ -1,0 +1,17 @@
+# Harbour Shell demo: every feature except Paint and the Japanese input method.
+# Run with: harbour-shell --demo demo/main.script --rec DIR     (see demo/README.md)
+# Each chapter starts on Home and returns to Home; goto:Name keeps them independent of tile order.
+# Lines marked "DEVICE ONLY" in the chapters need real hardware to be meaningful.
+include:chapters/01_home.script
+include:chapters/02_theme.script
+include:chapters/03_settings.script
+include:chapters/04_lock.script
+include:chapters/05_work_a.script
+include:chapters/06_work_b.script
+include:chapters/07_media.script
+include:chapters/08_net.script
+include:chapters/09_play.script
+include:chapters/10_agent.script
+include:chapters/11_mouse.script
+include:chapters/12_end.script
+wait:1500

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Browser
+Name[ja]=ブラウザ
+Exec=harbour:browser
+Icon=icon.png
+Terminal=false
+Type=Application

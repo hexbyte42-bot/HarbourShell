@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Sheet
+Name[ja]=表計算
+Exec=harbour:sheet
+Icon=icon.png
+Terminal=false
+Type=Application

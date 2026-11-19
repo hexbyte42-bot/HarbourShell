@@ -1,0 +1,56 @@
+// Harbour Agent providers. Copy to ~/.config/harbour/agent.json and run: chmod 600 ~/.config/harbour/agent.json
+// (// comments are allowed in this file.)
+//
+// Keys: prefer "api_key_env" (the name of an environment variable the launcher is started with).
+// A literal "api_key" also works; then keep the file at mode 0600 (the Agent warns when it is not).
+// Keys are never logged, shown, or put on a command line.
+//
+// kind "openai": POST {base_url}/chat/completions with function calling (OpenAI, Groq, Nous, Z.ai, local servers).
+// kind "anthropic": Anthropic Messages API (base_url optional, default https://api.anthropic.com).
+// kind "mock": canned answers, no network.
+// kind "muse": Meta Muse through the musegadget service you installed yourself (docs/MUSE.md). No key here:
+//   the Muse SDK token stays inside that service. Muse's answers are text; Muse acts on Harbour through its
+//   own harbour.* commands, which still ask for your confirmation on the device.
+//
+// Model names below are PLACEHOLDERS: fill in a model your account has and that supports tool calls.
+// Base URLs: verified in public docs / third-party listings on 2026-11-18, but no request was ever sent
+// to any of them from this project, so treat them as unverified until you try.
+{
+  "default": "groq",
+  "providers": {
+    "groq": {
+      "kind": "openai",
+      "base_url": "https://api.groq.com/openai/v1",   // seen in Groq's OpenAI-compatibility docs
+      "model": "REPLACE_WITH_A_GROQ_MODEL",
+      "api_key_env": "GROQ_API_KEY"
+    },
+    "openai": {
+      "kind": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "model": "REPLACE_WITH_AN_OPENAI_MODEL",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "nous": {
+      "kind": "openai",
+      "base_url": "https://inference-api.nousresearch.com/v1",   // Nous Portal; from a third-party OpenAPI listing
+      "model": "REPLACE_WITH_A_NOUS_MODEL",
+      "api_key_env": "NOUS_API_KEY"
+    },
+    "zai": {
+      "kind": "openai",
+      "base_url": "https://api.z.ai/api/paas/v4",   // global endpoint; Coding Plan keys use .../api/coding/paas/v4 (unverified)
+      "model": "REPLACE_WITH_A_GLM_MODEL",
+      "api_key_env": "ZAI_API_KEY"
+    },
+    "anthropic": {
+      "kind": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    "muse": {"kind": "muse"}
+    // Meta Muse. Every key under "muse" is optional (shown with the defaults):
+    // "muse": {"kind": "muse", "muse": {"socket": "/run/musegadget/musegadget.sock", "wait_secs": 60}}
+    // A local OpenAI-compatible server needs no key:
+    // "local": {"kind": "openai", "base_url": "http://192.168.1.10:8080/v1", "model": "whatever-it-serves"}
+  }
+}

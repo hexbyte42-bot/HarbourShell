@@ -1,0 +1,6 @@
+# Ch.4 Lock: Tab hold 1 s -> lock screen, scroll wheel to unlock.
+# DEVICE ONLY: the screen-off fade (dark timer) is disabled while a script runs; film the lock->off->wake part by hand.
+hold:Tab:1300,wait:1500
+wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:900
+wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:150,wheel:1,wait:900
+wait:800

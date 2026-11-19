@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Clock
+Name[ja]=時計
+Exec=harbour:clock
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=worldclock

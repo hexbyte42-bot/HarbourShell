@@ -1,0 +1,22 @@
+# Ch.2 Themes: Settings > Display > Theme walks Amber -> Sky -> Mobile -> Terminal, then Invert.
+# theme-ui:N presses Left/Right on the Theme row like a person; theme:N[:invert] switches instantly.
+goto:Settings,wait:600
+Return,wait:1200
+Return,wait:1000
+# Display page: Brightness, Screen off, Lock screen, Theme -> row 3
+Down,Down,Down,wait:800
+theme-ui:1,wait:1800
+theme-ui:2,wait:1800
+theme-ui:3,wait:1800
+theme-ui:0,wait:1500
+# Invert row sits below Theme + Title font; Return toggles it
+Down,Down,wait:600
+Return,wait:1800
+Return,wait:1500
+Escape,wait:600
+Escape,wait:900
+# on Home: the palette change that needs no menus (use for B-roll between chapters)
+theme:1,wait:1200
+theme:2,wait:1200
+theme:3:invert,wait:1200
+theme:0,wait:1200

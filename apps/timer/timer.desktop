@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Timer
+Name[ja]=タイマ
+Exec=harbour:timer
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=stopwatch

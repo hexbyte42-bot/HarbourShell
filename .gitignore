@@ -1,0 +1,15 @@
+.DS_Store
+target/
+
+# Runtime VFS and host exchange directories.
+harbour_vfs.yaml
+harbour_import/
+harbour_export/
+dist/
+src/bin/font_sheet.rs
+
+# Artwork sources and working files: kept private, not published (finished assets only).
+assets/icons-src/
+assets/statusbar-src/
+assets/images/icons/Test*.png
+demo/out/

@@ -1,0 +1,14 @@
+{
+  "description": "Harbour Shell: Open an app by name (see list_apps). Replaces the screen behind this chat.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "launch_app"
+  ],
+  "required": {
+    "name": {
+      "description": "The name argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "timeout_ms": 60000
+}

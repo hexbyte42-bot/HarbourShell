@@ -1,0 +1,14 @@
+{
+  "description": "Harbour Shell: Press keys in the app behind this chat, e.g. \"Down Down Return\" or \"Escape\". Names: Up Down Left Right Return Escape Tab Space Backspace Delete Home End PageUp PageDown, single characters, Shift+/Ctrl+ prefixes. At most 20 keys.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "press_keys"
+  ],
+  "required": {
+    "keys": {
+      "description": "The keys argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "timeout_ms": 60000
+}

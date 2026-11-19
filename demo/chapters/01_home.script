@@ -1,0 +1,16 @@
+# Ch.1 Home: grid -> list -> grid, page jump, new folder, open it and come back.
+# Starts on Home with the selection on Settings (top-left tile); the Mac mock and the device behave the same.
+wait:1500
+Right,wait:350,Right,wait:350,Right,wait:350
+Down,wait:350,Left,wait:350,Down,wait:600
+# Tab short press = grid <-> list (a 300 ms double-tap window is waited when the Agent is enabled)
+Tab,wait:1800
+Down,wait:300,Down,wait:300,Down,wait:900
+Tab,wait:1500
+2,wait:1500
+1,wait:1200
+# Alt menu on Home: New Folder
+menu,wait:1000
+Return,wait:900
+text:Work,wait:900
+Return,wait:1400

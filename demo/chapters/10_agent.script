@@ -1,0 +1,17 @@
+# Ch.10 Agent. Tab Tab (within 300 ms) slides the chat in over whatever is on screen.
+# MOCK: the "mock" provider answers with canned text, no network. DEVICE ONLY: a real provider (Settings > Agent),
+# the Muse provider, and the Sym push-to-talk voice (voicedown/voiceup stand in for the Sym key; the microphone
+# and speech-to-text are real hardware). Do not film API keys; the chat history is stored on disk.
+goto:Files,wait:600
+Tab,wait:120,Tab,wait:1800
+text:open the calculator,wait:900,Return,wait:2500
+# confirmation card for the action: accept
+Return,wait:2000
+# switch provider / agent menu
+menu,wait:1500,Escape,wait:800
+# push-to-talk (DEVICE ONLY for real audio)
+voicedown,wait:2000,voiceup,wait:2500
+Escape,wait:1200
+# Settings > Agent > Connect (QR)
+goto:Settings,wait:500
+hold:Escape:1100,wait:900

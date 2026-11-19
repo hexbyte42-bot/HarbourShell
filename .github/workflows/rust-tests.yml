@@ -1,0 +1,22 @@
+name: Harbour Rust tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev pkg-config
+      - name: Run library unit tests
+        run: cargo test --lib --locked
+      - name: Check the shell binary
+        run: cargo check --bin harbour-shell --locked

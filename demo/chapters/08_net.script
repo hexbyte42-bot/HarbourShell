@@ -1,0 +1,10 @@
+# Ch.8 Net: Browser (reader mode), Interceptor.
+# MOCK / OFFLINE: the Browser cannot fetch pages without a network; on the device use a stable page you control
+# (see demo/README.md). Edit the URL below before recording on the device.
+goto:Browser,wait:500,Return,wait:1500
+ctrl+l,wait:400,text:example.com,Return,wait:4000
+Down,wait:600,Down,wait:600,Down,wait:800
+hold:Escape:1100,wait:900
+goto:Interceptor,wait:500,Return,wait:2000
+Return,wait:2000
+hold:Escape:1100,wait:900

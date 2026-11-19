@@ -1,0 +1,5 @@
+# Ch.9 Play: Snake (run into a wall -> game over).
+goto:Snake,wait:500,Return,wait:1500
+Right,wait:600,Down,wait:600,Left,wait:600,Up,wait:600,Right,wait:900
+Right,wait:2500
+hold:Escape:1100,wait:900

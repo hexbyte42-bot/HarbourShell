@@ -1,0 +1,9 @@
+{
+  "description": "Harbour Shell: Describe, as compact text, what is on the screen behind this chat (app, page, rows).",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "current_screen"
+  ],
+  "required": {},
+  "timeout_ms": 15000
+}

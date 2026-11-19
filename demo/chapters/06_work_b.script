@@ -1,0 +1,13 @@
+# Ch.6 Work tools B: Calendar, Timer (mouse), World Clock (map), Monitor.
+# DEVICE ONLY: Monitor graphs (CPU/memory/temperature/battery) are real; the mock has flat placeholder data.
+goto:Calendar,wait:500,Return,wait:1200
+Right,wait:500,Right,wait:500,Down,wait:500,Left,wait:800
+hold:Escape:1100,wait:900
+goto:Timer,wait:500,Return,wait:1200
+Up,wait:400,Up,wait:400,Return,wait:2000
+hold:Escape:1100,wait:900
+goto:Clock,wait:500,Return,wait:1500
+Right,wait:1000,Right,wait:1000,Right,wait:1000
+hold:Escape:1100,wait:900
+goto:Monitor,wait:500,Return,wait:3000
+hold:Escape:1100,wait:900

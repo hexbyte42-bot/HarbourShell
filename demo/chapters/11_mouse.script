@@ -1,0 +1,9 @@
+# Ch.11 Mouse. click:/drag:/wheel: drive the virtual pointer; DEVICE ONLY: the real USB mouse hot-plug shows the pointer
+# by itself (here move: wakes it). Coordinates are LCD pixels (320x170).
+move:160:90,wait:900
+move:60:50,wait:600,move:150:130,wait:600
+click:40:40,wait:300,click:40:40,wait:1500
+hold:Escape:1100,wait:900
+rclick:160:90,wait:1200,Escape,wait:600
+# drag a tile onto the Work folder
+drag:260:100:40:40,wait:1500

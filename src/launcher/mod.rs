@@ -1,0 +1,30 @@
+//! Launcher core: .desktop discovery, ordering and running external apps.
+
+pub mod agent;
+pub mod alert;
+pub mod app;
+pub mod apps;
+pub mod calc;
+pub mod dialogs;
+pub mod desktop_entry;
+pub mod feed;
+pub mod fileops;
+pub mod folders;
+pub mod home;
+pub mod i18n;
+pub mod icons;
+pub mod ime_glue;
+pub mod lineedit;
+pub mod lock;
+pub mod packages;
+pub mod process;
+pub mod qr;
+pub mod registry;
+pub mod settings;
+pub mod sevenseg;
+pub mod sysicon;
+pub mod terminal;
+pub mod widgets;
+pub mod worldclock;
+pub mod worldmap;
+pub mod worldmap_data;

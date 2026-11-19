@@ -1,0 +1,14 @@
+{
+  "description": "Harbour Shell: List a directory under the user's home directory.",
+  "exec": [
+    "/usr/local/bin/harbour-muse-cmd",
+    "list_dir"
+  ],
+  "required": {
+    "path": {
+      "description": "The path argument; see the command description.",
+      "type": "string"
+    }
+  },
+  "timeout_ms": 15000
+}
