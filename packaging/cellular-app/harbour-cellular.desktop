@@ -3,6 +3,6 @@ Type=Application
 Name=Cellular
 Comment=4G data and SMS for the QDC507 module
 Exec=/usr/bin/harbour-cellular
-Icon=/usr/share/harbour-cellular/apps/cellular/icon.png
+Icon=share/images/harbour-cellular.png
 Terminal=false
 Categories=Network;

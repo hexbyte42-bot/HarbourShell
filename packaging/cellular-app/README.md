@@ -9,7 +9,9 @@ The cellular feature ships in two forms over one backend:
   standalone `harbour-cellular` binary (`src/bin/harbour-cellular.rs`), a
   minimal single-app host for the same `LauncherApp` module, meant to be
   launched from the official APPLaunch via
-  `/usr/share/applications/harbour-cellular.desktop`.
+  `/usr/share/APPLaunch/applications/harbour-cellular.desktop` (APPLaunch
+  scans that dir, not the freedesktop one; its icon goes to
+  `/usr/share/APPLaunch/share/images/harbour-cellular.png`).
 
 `build-deb.sh` assembles one `harbour-cellular` deb containing the
 standalone UI, the daemon, its systemd unit and the udev rule, so a

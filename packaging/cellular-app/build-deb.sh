@@ -7,7 +7,8 @@
 #                                      ~/workspace/harbour-celld) + systemd unit
 #   * /usr/share/harbour-cellular/     the assets the UI loads (fonts, themes,
 #                                      images, the cellular app package)
-# plus the APPLaunch entry in /usr/share/applications and the udev rule
+# plus the APPLaunch entry in /usr/share/APPLaunch/applications (that is
+# where APPLaunch scans — not the freedesktop dir) and the udev rule
 # that names the modem's AT port /dev/cell-at.
 #
 # The same daemon also serves Harbour Shell's built-in Cellular page over
@@ -35,14 +36,18 @@ done
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE/usr/bin" "$STAGE/usr/share/harbour-cellular/apps" \
-         "$STAGE/usr/share/applications" "$STAGE/usr/lib/systemd/system" \
+         "$STAGE/usr/share/APPLaunch/applications" "$STAGE/usr/share/APPLaunch/share/images" \
+         "$STAGE/usr/lib/systemd/system" \
          "$STAGE/usr/lib/udev/rules.d" "$STAGE/var/lib/harbour-cell" "$STAGE/DEBIAN"
 
 cp "$CELL_BIN" "$STAGE/usr/bin/harbour-cellular"
 cp "$CELLD_BIN" "$STAGE/usr/bin/harbour-celld"
 cp -r assets "$STAGE/usr/share/harbour-cellular/"
 cp -r apps/cellular "$STAGE/usr/share/harbour-cellular/apps/"
-cp packaging/cellular-app/harbour-cellular.desktop "$STAGE/usr/share/applications/"
+# APPLaunch discovers apps in its own applications dir, with icons as
+# paths relative to /usr/share/APPLaunch (share/images/<name>.png).
+cp packaging/cellular-app/harbour-cellular.desktop "$STAGE/usr/share/APPLaunch/applications/"
+cp apps/cellular/icon.png "$STAGE/usr/share/APPLaunch/share/images/harbour-cellular.png"
 cp packaging/cellular-app/harbour-celld.service "$STAGE/usr/lib/systemd/system/"
 cp packaging/cellular-app/99-harbour-cell.rules "$STAGE/usr/lib/udev/rules.d/"
 
