@@ -226,6 +226,7 @@ pub fn call_set_mute(muted: bool) -> Result<(), String> {
 
 #[derive(Clone, Debug)]
 pub struct CallLogEntry {
+    pub id: i64,
     /// "in" | "out"
     pub direction: String,
     pub address: String,
@@ -241,6 +242,7 @@ pub fn call_list(limit: i64, offset: i64) -> Result<Vec<CallLogEntry>, String> {
     Ok(arr
         .iter()
         .map(|m| CallLogEntry {
+            id: m.get("id").and_then(|x| x.as_i64()).unwrap_or(0),
             direction: m.get("direction").and_then(|x| x.as_str()).unwrap_or("").to_string(),
             address: m.get("address").and_then(|x| x.as_str()).unwrap_or("").to_string(),
             ts: m.get("ts").and_then(|x| x.as_i64()).unwrap_or(0),
@@ -248,6 +250,18 @@ pub fn call_list(limit: i64, offset: i64) -> Result<Vec<CallLogEntry>, String> {
             outcome: m.get("outcome").and_then(|x| x.as_str()).unwrap_or("").to_string(),
         })
         .collect())
+}
+
+pub fn call_delete(id: i64) -> Result<(), String> {
+    request("call.delete", &json!({"id": id}), Duration::from_secs(10))?;
+    Ok(())
+}
+
+/// Delete a whole SMS conversation (every stored message with this
+/// address); returns how many messages went away.
+pub fn sms_delete_address(address: &str) -> Result<i64, String> {
+    let v = request("sms.delete_address", &json!({"address": address}), Duration::from_secs(15))?;
+    Ok(v.get("deleted").and_then(|x| x.as_i64()).unwrap_or(0))
 }
 
 #[derive(Clone, Debug, Default)]

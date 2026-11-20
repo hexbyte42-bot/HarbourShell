@@ -267,6 +267,7 @@ enum CallKind {
 
 #[derive(Debug, Clone)]
 struct CallEntry {
+    id: i64,
     number: String,
     ts: i64,
     kind: CallKind,
@@ -389,6 +390,8 @@ enum Job {
     SetMute(bool),
     LoadVoice,
     CallPoll,
+    DeleteCall(i64),
+    DeleteThread(String),
 }
 
 enum Done {
@@ -402,6 +405,7 @@ enum Done {
     Sent,
     CallState(Result<cell::CallState, String>),
     VoiceLoaded(Result<(), String>),
+    Deleted(&'static str),
     Failed(String),
 }
 
@@ -454,6 +458,14 @@ fn run_job(job: Job) -> Done {
         },
         Job::LoadVoice => Done::VoiceLoaded(cell::voice_load()),
         Job::CallPoll => Done::CallState(cell::call_state()),
+        Job::DeleteCall(id) => match cell::call_delete(id) {
+            Ok(()) => Done::Deleted("Call record deleted"),
+            Err(e) => Done::Failed(e),
+        },
+        Job::DeleteThread(addr) => match cell::sms_delete_address(&addr) {
+            Ok(_) => Done::Deleted("Thread deleted"),
+            Err(e) => Done::Failed(e),
+        },
     }
 }
 
@@ -664,6 +676,7 @@ impl CellularApp {
                         self.history = calls
                             .iter()
                             .map(|e| CallEntry {
+                                id: e.id,
                                 number: e.address.clone(),
                                 ts: e.ts,
                                 kind: match (e.direction.as_str(), e.outcome.as_str()) {
@@ -696,6 +709,10 @@ impl CellularApp {
                 }
                 Done::VoiceLoaded(Err(e)) => {
                     self.set_note(&e);
+                }
+                Done::Deleted(msg) => {
+                    self.set_note(&tr_s(msg));
+                    self.refresh();
                 }
                 Done::Failed(e) => {
                     self.set_note(&e);
@@ -848,6 +865,13 @@ impl CellularApp {
                 }
                 AppAction::None
             }
+            Keycode::Backspace if self.phone_focus == PhoneFocus::History => {
+                if let Some(e) = self.history.get(self.history_sel) {
+                    let id = e.id;
+                    self.dispatch(Job::DeleteCall(id));
+                }
+                AppAction::None
+            }
             k if is_enter(k) => {
                 if self.phone_focus == PhoneFocus::History {
                     if let Some(e) = self.history.get(self.history_sel) {
@@ -918,6 +942,14 @@ impl CellularApp {
                         self.thread_input = LineEdit::default();
                         self.thread_back = 0;
                         self.msg_view = MsgView::Thread;
+                    }
+                    AppAction::None
+                }
+                Keycode::Backspace => {
+                    let ts = threads(&self.messages, &self.read);
+                    if let Some(t) = ts.get(self.thread_sel) {
+                        let addr = t.address.clone();
+                        self.dispatch(Job::DeleteThread(addr));
                     }
                     AppAction::None
                 }
@@ -1527,7 +1559,7 @@ impl CellularApp {
             fs.draw_text(c, RIGHT - tw, y + 1, &when, if sel { p.sel_fg } else { p.sec });
         }
         if self.entered && self.phone_focus == PhoneFocus::History {
-            fs.draw_text(c, 158, CONTENT_Y + 22 + 6 * 15 + 4, "[Up/Dn] Select  [Enter] Dial", p.sec);
+            fs.draw_text(c, 158, CONTENT_Y + 22 + 6 * 15 + 4, "[Up/Dn] Select  [Enter] Dial  [Bksp] Del", p.sec);
         }
     }
 
@@ -1588,7 +1620,7 @@ impl CellularApp {
             return;
         }
         const ROW_H: i32 = 25;
-        let vis = (CONTENT_H / ROW_H).max(1) as usize;
+        let vis = ((CONTENT_H - 14) / ROW_H).max(1) as usize;
         self.thread_top = widgets::follow_scroll(self.thread_sel, self.thread_top, vis, list.len());
         let top = self.thread_top;
         for (vi, t) in list.iter().skip(top).take(vis).enumerate() {
@@ -1615,8 +1647,11 @@ impl CellularApp {
             }
         }
         if list.len() > vis {
-            widgets::ScrollBar::new(Rect::new(RIGHT + 2, CONTENT_Y, 4, CONTENT_H as u32), list.len(), vis, top)
+            widgets::ScrollBar::new(Rect::new(RIGHT + 2, CONTENT_Y, 4, (CONTENT_H - 14) as u32), list.len(), vis, top)
                 .draw(c, ctx.tm, None);
+        }
+        if self.entered {
+            fs.draw_text(c, LEFT, CONTENT_Y + CONTENT_H - 12, "[Enter] Open  [N] New  [Bksp] Delete thread", p.sec);
         }
     }
 
