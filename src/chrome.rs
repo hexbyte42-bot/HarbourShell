@@ -27,6 +27,8 @@ pub struct StatusView {
     /// Wi-Fi signal 0..=100 while connected.
     pub wifi: Option<u8>,
     pub wifi_radio: bool,
+    /// Cellular signal bars 0..=4; `None` hides the indicator (no daemon / no module).
+    pub cell: Option<u8>,
     /// The Ethernet port has an address: it is the connection in use, so it replaces the Wi-Fi bars.
     pub ethernet: bool,
     /// The internet is reachable (a TCP connection to a public address works).
@@ -250,6 +252,17 @@ pub fn draw_wifi(c: &mut Canvas<Window>, assets: &mut AssetStore, x: i32, y: i32
     status_icon(c, assets, Icon::Wifi, frame, x, y, ink, dim);
 }
 
+/// Cellular: four bars of increasing height in a 12 x 12 cell (drawn, not from
+/// the icon atlas — the atlas has no cellular glyph). Filled bars in `ink`,
+/// the rest in `dim`; 0 bars = module present but no service.
+pub fn draw_cell(c: &mut Canvas<Window>, x: i32, y: i32, bars: u8, ink: sdl2::pixels::Color, dim: sdl2::pixels::Color) {
+    for i in 0..4i32 {
+        let h = 3 + i * 2;
+        let col = if (bars as i32) > i { ink } else { dim };
+        ui::fill_rect(c, Rect::new(x + i * 3, y + 12 - h, 2, h as u32), col);
+    }
+}
+
 /// Battery: 0 / 1 / 2 / 3 (full) from the percentage, charging, or disabled (no gauge).
 pub fn draw_battery(c: &mut Canvas<Window>, assets: &mut AssetStore, x: i32, y: i32, percent: Option<u8>, charging: bool, ink: sdl2::pixels::Color, dim: sdl2::pixels::Color) {
     use statusbar::battery_frame as f;
@@ -320,6 +333,11 @@ pub fn draw_menu_bar(c: &mut Canvas<Window>, assets: &mut AssetStore, fs: &FontS
         draw_wifi(c, assets, right, 2, st.wifi, st.wifi_radio, ink, dim);
     }
     right -= 4;
+    if let Some(bars) = st.cell {
+        right -= 12;
+        draw_cell(c, right, 2, bars, ink, dim);
+        right -= 4;
+    }
     right -= 12;
     status_icon(c, assets, if st.online { Icon::Globe } else { Icon::GlobeDisabled }, 0, right, 2, ink, dim);
     if let Some((p, muted)) = st.volume {

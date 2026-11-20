@@ -2158,6 +2158,7 @@ fn spawn_status(sys: Arc<dyn Backend>, status: Arc<Mutex<StatusView>>) {
     std::thread::spawn(move || loop {
         let b = sys.battery();
         let w = sys.wifi_status();
+        let cell = sys.cell_status();
         let eth = sys.eth_ip().is_some();
         let online = mock || reachable();
         let vol = sys.volume();
@@ -2166,6 +2167,7 @@ fn spawn_status(sys: Arc<dyn Backend>, status: Arc<Mutex<StatusView>>) {
             s.charging = b.charging;
             s.wifi = w.signal;
             s.wifi_radio = w.radio;
+            s.cell = if cell.present { Some(cell.bars.unwrap_or(0)) } else { None };
             s.ethernet = eth;
             s.online = online;
             s.volume = vol;
