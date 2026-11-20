@@ -1642,7 +1642,9 @@ impl CellularApp {
             fs.draw_text(c, LEFT, CONTENT_Y + 44, "[N] New message", p.sec);
             return;
         }
-        const ROW_H: i32 = 25;
+        // Two 12 px text lines (origins y+2 / y+14, cells ending at y+25)
+        // plus the rule row: the plate must span the full text block.
+        const ROW_H: i32 = 27;
         let vis = ((CONTENT_H - 14) / ROW_H).max(1) as usize;
         self.thread_top = widgets::follow_scroll(self.thread_sel, self.thread_top, vis, list.len());
         let top = self.thread_top;
@@ -1651,7 +1653,9 @@ impl CellularApp {
             let y = CONTENT_Y + vi as i32 * ROW_H;
             let sel = self.entered && idx == self.thread_sel;
             if sel {
-                ui::fill_rect(c, Rect::new(LEFT, y + 1, (RIGHT - LEFT) as u32, (ROW_H - 2) as u32), p.sel_bg);
+                // House plate convention (widgets::draw_row_plate): the row
+                // minus its last pixel row, which belongs to the rule.
+                ui::fill_rect(c, Rect::new(LEFT, y, (RIGHT - LEFT) as u32, (ROW_H - 1) as u32), p.sel_bg);
             }
             let (main, sub) = if sel { (p.sel_fg, p.sel_fg) } else { (p.ink, p.sec) };
             fs.draw_display_text(c, LEFT + 4, y + 2, &chrome::fit_text(fs, &t.address, 220), main);
@@ -1718,6 +1722,10 @@ impl CellularApp {
         }
         self.thread_back = self.thread_back.min((total - VIEW_H).max(0));
         let mut by = VIEW_Y + VIEW_H - total + self.thread_back;
+        // Bubbles are laid out bottom-up and the stack can start far above
+        // the view; clip to the view so a tall bubble never paints over
+        // the sub-header or the shell status bar (cf. Infoscope's list).
+        c.set_clip_rect(Rect::new(0, VIEW_Y, grid::SCREEN_W as u32, VIEW_H as u32));
         for (outgoing, lines) in &blocks {
             let bh = lines.len() as i32 * 12 + 8;
             if by + bh >= VIEW_Y - 4 && by <= VIEW_Y + VIEW_H {
@@ -1731,6 +1739,7 @@ impl CellularApp {
             }
             by += bh + 4;
         }
+        c.set_clip_rect(None);
         // Composer: a rule, then a sunken well with the input.
         let comp_y = VIEW_Y + VIEW_H + 4;
         ui::fill_rect(c, Rect::new(LEFT, comp_y, (RIGHT - LEFT) as u32, 1), p.line);
