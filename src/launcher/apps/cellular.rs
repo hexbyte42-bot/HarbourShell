@@ -10,9 +10,9 @@
 //!
 //! All modem work goes through the harbour-celld daemon (see
 //! `crate::system::cell`); this app only talks IPC, on a worker thread,
-//! and never blocks the UI on it. Voice calls are not wired to the daemon
-//! yet: dialling shows the in-call screen as a clearly labelled preview,
-//! and the incoming-call modal exists but only real call events raise it.
+//! and never blocks the UI on it. Voice calls go through the daemon too:
+//! it owns the call state machine and the audio route, and this app
+//! polls `call.state` once a second and renders what the daemon says.
 //!
 //! Character input arrives through `text()` (the shell's IME channel);
 //! `key()` handles navigation and control keys only, so nothing is ever
@@ -272,13 +272,27 @@ struct CallEntry {
     kind: CallKind,
 }
 
-/// An on-screen call (a layout preview until the voice path lands).
+/// An on-screen call. The daemon owns the truth; `phase` and
+/// `secs_base` are its last report, and the timer interpolates locally
+/// between the one-second polls while the call is connected.
 struct CallUi {
     number: String,
-    started: Instant,
+    phase: cell::CallPhase,
+    secs_base: u64,
+    secs_at: Instant,
     volume: u8,
     muted: bool,
     dtmf: String,
+}
+
+impl CallUi {
+    fn secs(&self) -> u64 {
+        if self.phase == cell::CallPhase::Active {
+            self.secs_base + self.secs_at.elapsed().as_secs()
+        } else {
+            0
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -367,11 +381,27 @@ enum Job {
     Refresh,
     SetData(bool),
     Send { to: String, text: String },
+    Dial(String),
+    Answer,
+    Hangup,
+    Dtmf(String),
+    SetVolume(u8),
+    SetMute(bool),
+    LoadVoice,
+    CallPoll,
 }
 
 enum Done {
-    Data { status: Result<CellStatus, String>, messages: Result<Vec<SmsMessage>, String>, stats: Option<(u64, u64)> },
+    Data {
+        status: Result<CellStatus, String>,
+        messages: Result<Vec<SmsMessage>, String>,
+        stats: Option<(u64, u64)>,
+        calls: Result<Vec<cell::CallLogEntry>, String>,
+        voice: Result<cell::VoiceState, String>,
+    },
     Sent,
+    CallState(Result<cell::CallState, String>),
+    VoiceLoaded(Result<(), String>),
     Failed(String),
 }
 
@@ -381,12 +411,16 @@ fn run_job(job: Job) -> Done {
             status: cell::status(),
             messages: cell::sms_list(200, 0),
             stats: cell::iface_stats("usb0"),
+            calls: cell::call_list(50, 0),
+            voice: cell::voice_status(),
         },
         Job::SetData(on) => match cell::set_data(on) {
             Ok(()) => Done::Data {
                 status: cell::status(),
                 messages: cell::sms_list(200, 0),
                 stats: cell::iface_stats("usb0"),
+                calls: cell::call_list(50, 0),
+                voice: cell::voice_status(),
             },
             Err(e) => Done::Failed(e),
         },
@@ -394,6 +428,32 @@ fn run_job(job: Job) -> Done {
             Ok(_) => Done::Sent,
             Err(e) => Done::Failed(e),
         },
+        Job::Dial(number) => match cell::call_dial(&number) {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::Answer => match cell::call_answer() {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::Hangup => match cell::call_hangup() {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::Dtmf(digits) => match cell::call_dtmf(&digits) {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::SetVolume(v) => match cell::call_set_volume(v) {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::SetMute(m) => match cell::call_set_mute(m) {
+            Ok(()) => Done::CallState(cell::call_state()),
+            Err(e) => Done::Failed(e),
+        },
+        Job::LoadVoice => Done::VoiceLoaded(cell::voice_load()),
+        Job::CallPoll => Done::CallState(cell::call_state()),
     }
 }
 
@@ -418,6 +478,8 @@ pub struct CellularApp {
     history_sel: usize,
     call: Option<CallUi>,
     incoming: Option<String>,
+    voice: Option<cell::VoiceState>,
+    last_call_poll: Option<Instant>,
     // Message tab
     msg_view: MsgView,
     thread_sel: usize,
@@ -469,6 +531,8 @@ impl CellularApp {
             history_sel: 0,
             call: None,
             incoming: None,
+            voice: None,
+            last_call_poll: None,
             msg_view: MsgView::List,
             thread_sel: 0,
             thread_top: 0,
@@ -501,6 +565,17 @@ impl CellularApp {
     }
 
     fn dispatch(&mut self, job: Job) {
+        self.busy = true;
+        self.dispatch_inner(job);
+    }
+
+    /// Like `dispatch`, but does not mark the UI busy: the one-second
+    /// call-state poll must not gate the five-second data refresh.
+    fn dispatch_bg(&mut self, job: Job) {
+        self.dispatch_inner(job);
+    }
+
+    fn dispatch_inner(&mut self, job: Job) {
         if self.jobs.is_none() {
             let (job_tx, job_rx) = std::sync::mpsc::channel::<Job>();
             let (done_tx, done_rx) = std::sync::mpsc::channel::<Done>();
@@ -514,7 +589,6 @@ impl CellularApp {
             self.jobs = Some(job_tx);
             self.done = Some(done_rx);
         }
-        self.busy = true;
         if let Some(tx) = &self.jobs {
             let _ = tx.send(job);
         }
@@ -557,7 +631,7 @@ impl CellularApp {
             changed = true;
             self.busy = false;
             match d {
-                Done::Data { status, messages, stats } => {
+                Done::Data { status, messages, stats, calls, voice } => {
                     match status {
                         Ok(st) => self.status = Some(st),
                         Err(_) => self.status = Some(CellStatus::default()),
@@ -586,11 +660,42 @@ impl CellularApp {
                         self.total_bytes = rx + tx;
                         self.last_stats = Some((rx, tx, now));
                     }
+                    if let Ok(calls) = calls {
+                        self.history = calls
+                            .iter()
+                            .map(|e| CallEntry {
+                                number: e.address.clone(),
+                                ts: e.ts,
+                                kind: match (e.direction.as_str(), e.outcome.as_str()) {
+                                    ("in", "answered") => CallKind::In,
+                                    ("in", _) => CallKind::Missed,
+                                    _ => CallKind::Out,
+                                },
+                            })
+                            .collect();
+                        if self.history_sel >= self.history.len() {
+                            self.history_sel = self.history.len().saturating_sub(1);
+                        }
+                    }
+                    if let Ok(v) = voice {
+                        self.voice = Some(v);
+                    }
                 }
                 Done::Sent => {
                     self.set_note(&tr_s("Message sent"));
                     self.thread_back = 0;
                     self.refresh();
+                }
+                Done::CallState(Ok(cs)) => {
+                    self.apply_call_state(cs);
+                }
+                Done::CallState(Err(_)) => {}
+                Done::VoiceLoaded(Ok(())) => {
+                    self.set_note(&tr_s("Voice runtime loaded"));
+                    self.refresh();
+                }
+                Done::VoiceLoaded(Err(e)) => {
+                    self.set_note(&e);
                 }
                 Done::Failed(e) => {
                     self.set_note(&e);
@@ -610,20 +715,75 @@ impl CellularApp {
         AppAction::None
     }
 
-    /// Start the on-screen call. Until the daemon grows voice methods this
-    /// is a layout preview, labelled as such on the call screen.
+    /// Dial for real: show the call screen optimistically; the daemon's
+    /// one-second state poll corrects phase and timer from here on.
     fn start_call(&mut self, number: &str) {
         let number = number.trim().to_string();
         if number.is_empty() {
             return;
         }
         self.call = Some(CallUi {
-            number,
-            started: Instant::now(),
+            number: number.clone(),
+            phase: cell::CallPhase::Dialing,
+            secs_base: 0,
+            secs_at: Instant::now(),
             volume: self.prefs.spk_gain,
             muted: false,
             dtmf: String::new(),
         });
+        self.dispatch(Job::Dial(number));
+    }
+
+    /// Reconcile the UI with the daemon's call state (polled 1/s).
+    fn apply_call_state(&mut self, cs: cell::CallState) {
+        use cell::CallPhase::*;
+        match cs.phase {
+            Idle => {
+                if self.call.take().is_some() {
+                    self.set_note(&tr_s("Call ended"));
+                    self.refresh();
+                }
+                self.incoming = None;
+            }
+            Incoming => {
+                if self.call.is_none() {
+                    let num = if cs.number.is_empty() {
+                        tr_s("Unknown number")
+                    } else {
+                        cs.number.clone()
+                    };
+                    if self.incoming.as_deref() != Some(num.as_str()) {
+                        self.incoming = Some(num);
+                    }
+                }
+            }
+            Dialing | Alerting | Active => {
+                self.incoming = None;
+                match &mut self.call {
+                    Some(call) => {
+                        if !cs.number.is_empty() {
+                            call.number = cs.number.clone();
+                        }
+                        call.phase = cs.phase;
+                        call.secs_base = cs.duration;
+                        call.secs_at = Instant::now();
+                    }
+                    None => {
+                        self.call = Some(CallUi {
+                            number: cs.number.clone(),
+                            phase: cs.phase,
+                            secs_base: cs.duration,
+                            secs_at: Instant::now(),
+                            volume: self.prefs.spk_gain,
+                            muted: false,
+                            dtmf: String::new(),
+                        });
+                        self.tab = Tab::Phone;
+                        self.entered = true;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -640,12 +800,16 @@ impl CellularApp {
         if self.call.is_some() {
             match key {
                 Keycode::Escape => {
-                    self.call = None;
-                    self.set_note(&tr_s("Call ended"));
+                    // Hang up for real; the state poll clears the screen
+                    // once the daemon confirms the call is over.
+                    self.set_note(&tr_s("Hanging up..."));
+                    self.dispatch(Job::Hangup);
                 }
                 Keycode::M => {
                     if let Some(call) = &mut self.call {
                         call.muted = !call.muted;
+                        let m = call.muted;
+                        self.dispatch_bg(Job::SetMute(m));
                     }
                 }
                 Keycode::Left | Keycode::Z => {
@@ -653,6 +817,8 @@ impl CellularApp {
                         call.volume = call.volume.saturating_sub(5);
                         self.prefs.spk_gain = call.volume;
                         self.prefs.save();
+                        let v = call.volume;
+                        self.dispatch_bg(Job::SetVolume(v));
                     }
                 }
                 Keycode::Right | Keycode::C => {
@@ -660,6 +826,8 @@ impl CellularApp {
                         call.volume = (call.volume + 5).min(100);
                         self.prefs.spk_gain = call.volume;
                         self.prefs.save();
+                        let v = call.volume;
+                        self.dispatch_bg(Job::SetVolume(v));
                     }
                 }
                 _ => {}
@@ -897,7 +1065,12 @@ impl CellularApp {
                         self.prefs.save();
                     }
                     SetItem::Voice => {
-                        self.set_note(&tr_s("Voice runtime comes with the voice phase"));
+                        if self.voice.as_ref().map(|v| v.drivers_loaded).unwrap_or(false) {
+                            self.set_note(&tr_s("Voice runtime loaded"));
+                        } else {
+                            self.set_note(&tr_s("Loading voice runtime..."));
+                            self.dispatch(Job::LoadVoice);
+                        }
                     }
                     SetItem::SpkGain | SetItem::MicGain => {
                         self.set_editing = Some(SET_ITEMS[self.set_sel]);
@@ -928,11 +1101,25 @@ impl CellularApp {
         }
         match self.tab {
             Tab::Phone => {
-                if let Some(call) = &mut self.call {
-                    for ch in text.chars().filter(|c| c.is_ascii_digit() || matches!(c, '*' | '#')) {
-                        call.dtmf.push(ch);
-                        if call.dtmf.len() > 24 {
-                            call.dtmf.remove(0);
+                if self.call.is_some() {
+                    let digits: String = text
+                        .chars()
+                        .filter(|c| c.is_ascii_digit() || matches!(c, '*' | '#'))
+                        .collect();
+                    if !digits.is_empty() {
+                        let active = self
+                            .call
+                            .as_ref()
+                            .map(|c| c.phase == cell::CallPhase::Active)
+                            .unwrap_or(false);
+                        if let Some(call) = &mut self.call {
+                            call.dtmf.push_str(&digits);
+                            if call.dtmf.len() > 24 {
+                                call.dtmf.drain(..call.dtmf.len() - 24);
+                            }
+                        }
+                        if active {
+                            self.dispatch_bg(Job::Dtmf(digits));
                         }
                     }
                 } else if self.phone_focus == PhoneFocus::Dial {
@@ -1001,9 +1188,19 @@ impl LauncherApp for CellularApp {
                 self.incoming = None;
                 self.tab = Tab::Phone;
                 self.entered = true;
-                self.start_call(&number);
+                self.call = Some(CallUi {
+                    number,
+                    phase: cell::CallPhase::Incoming,
+                    secs_base: 0,
+                    secs_at: Instant::now(),
+                    volume: self.prefs.spk_gain,
+                    muted: false,
+                    dtmf: String::new(),
+                });
+                self.dispatch(Job::Answer);
             } else if key == Keycode::Escape {
                 self.incoming = None;
+                self.dispatch(Job::Hangup);
             }
             return AppAction::None;
         }
@@ -1095,6 +1292,10 @@ impl LauncherApp for CellularApp {
         if self.call.is_some() && self.last_tick.elapsed() >= Duration::from_millis(500) {
             self.last_tick = Instant::now();
             changed = true;
+        }
+        if self.last_call_poll.map(|t| t.elapsed() >= Duration::from_secs(1)).unwrap_or(true) {
+            self.last_call_poll = Some(Instant::now());
+            self.dispatch_bg(Job::CallPoll);
         }
         if !self.busy && self.last_refresh.map(|t| t.elapsed() >= REFRESH_EVERY).unwrap_or(true) {
             self.refresh();
@@ -1267,8 +1468,7 @@ impl CellularApp {
         let fs = ctx.fs;
         let p = pal(ctx.tm);
         if let Some(call) = &self.call {
-            let secs = call.started.elapsed().as_secs();
-            self.draw_incall(c, ctx, &call.number, secs, call.volume, call.muted, &call.dtmf);
+            self.draw_incall(c, ctx, &call.number, call.phase, call.secs(), call.volume, call.muted, &call.dtmf);
             return;
         }
         // Dialer (left column). The focused input box itself takes the
@@ -1336,6 +1536,7 @@ impl CellularApp {
         c: &mut Canvas<Window>,
         ctx: &Ctx,
         number: &str,
+        phase: cell::CallPhase,
         secs: u64,
         volume: u8,
         muted: bool,
@@ -1345,11 +1546,23 @@ impl CellularApp {
         let p = pal(ctx.tm);
         let y = CONTENT_Y;
         ui::fill_rect(c, Rect::new(LEFT + 1, y + 3, 6, 6), p.accent);
-        let title = format!("IN CALL (preview)  {:02}:{:02}", secs / 60, secs % 60);
+        let title = match phase {
+            cell::CallPhase::Active => format!("IN CALL  {:02}:{:02}", secs / 60, secs % 60),
+            cell::CallPhase::Dialing => "DIALING".to_string(),
+            cell::CallPhase::Alerting => "RINGING".to_string(),
+            cell::CallPhase::Incoming => "INCOMING CALL".to_string(),
+            cell::CallPhase::Idle => "CALL".to_string(),
+        };
         fs.draw_display_text(c, LEFT + 12, y, &title, p.ink);
         let num = chrome::fit_text(fs, number, 300);
         fs.draw_display_text(c, LEFT, y + 20, &num, p.ink);
-        fs.draw_text(c, LEFT, y + 40, "voice not connected yet", p.sec);
+        let sub = match phase {
+            cell::CallPhase::Active => "VoLTE voice connected",
+            cell::CallPhase::Dialing => "Dialing via VoLTE...",
+            cell::CallPhase::Alerting => "Waiting for answer...",
+            _ => "",
+        };
+        fs.draw_text(c, LEFT, y + 40, sub, p.sec);
         // Speaker volume: a zebra track with the filled part in ink.
         fs.draw_text(c, LEFT, y + 62, "SPK VOL", p.ink);
         ui::fill_rect(c, Rect::new(LEFT + 56, y + 62, 120, 10), p.alt);
@@ -1522,7 +1735,11 @@ impl CellularApp {
             SRow::Info("IPv4".into(), st.and_then(|s| s.ip.clone()).unwrap_or_else(|| dash.clone())),
             SRow::Info("IPv6".into(), st.and_then(|s| s.ipv6.clone()).unwrap_or_else(|| dash.clone())),
             SRow::Section("VOICE"),
-            SRow::Item(SetItem::Voice, "Voice runtime".into(), "Not loaded".into()),
+            SRow::Item(SetItem::Voice, "Voice runtime".into(), match &self.voice {
+                Some(v) if v.drivers_loaded => "Loaded".into(),
+                Some(_) => "Not loaded".into(),
+                None => "...".into(),
+            }),
             SRow::Item(SetItem::SpkGain, "Speaker gain".into(), format!("{}%", self.prefs.spk_gain)),
             SRow::Item(SetItem::MicGain, "Mic gain".into(), format!("{}%", self.prefs.mic_gain)),
             SRow::Section("MODEM"),

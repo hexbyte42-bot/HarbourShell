@@ -152,6 +152,126 @@ pub fn sms_delete(id: i64) -> Result<(), String> {
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// Voice calls
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallPhase {
+    Idle,
+    Dialing,
+    Alerting,
+    Incoming,
+    Active,
+}
+
+#[derive(Clone, Debug)]
+pub struct CallState {
+    pub phase: CallPhase,
+    /// "in" | "out" (empty when idle)
+    pub direction: String,
+    pub number: String,
+    /// Connected seconds so far (0 until the call is answered).
+    pub duration: u64,
+}
+
+pub fn call_state() -> Result<CallState, String> {
+    let v = request("call.state", &json!({}), Duration::from_secs(10))?;
+    let phase = match v.get("phase").and_then(|x| x.as_str()).unwrap_or("idle") {
+        "dialing" => CallPhase::Dialing,
+        "alerting" => CallPhase::Alerting,
+        "incoming" => CallPhase::Incoming,
+        "active" => CallPhase::Active,
+        _ => CallPhase::Idle,
+    };
+    Ok(CallState {
+        phase,
+        direction: v.get("direction").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        number: v.get("number").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        duration: v.get("duration").and_then(|x| x.as_u64()).unwrap_or(0),
+    })
+}
+
+/// Dialing can block while the daemon loads the voice runtime on the
+/// module, hence the long leash.
+pub fn call_dial(number: &str) -> Result<(), String> {
+    request("call.dial", &json!({"number": number}), Duration::from_secs(60))?;
+    Ok(())
+}
+
+pub fn call_answer() -> Result<(), String> {
+    request("call.answer", &json!({}), Duration::from_secs(15))?;
+    Ok(())
+}
+
+pub fn call_hangup() -> Result<(), String> {
+    request("call.hangup", &json!({}), Duration::from_secs(15))?;
+    Ok(())
+}
+
+pub fn call_dtmf(digits: &str) -> Result<(), String> {
+    request("call.dtmf", &json!({"digits": digits}), Duration::from_secs(30))?;
+    Ok(())
+}
+
+pub fn call_set_volume(percent: u8) -> Result<(), String> {
+    request("call.set_volume", &json!({"percent": percent}), Duration::from_secs(10))?;
+    Ok(())
+}
+
+pub fn call_set_mute(muted: bool) -> Result<(), String> {
+    request("call.set_mute", &json!({"muted": muted}), Duration::from_secs(10))?;
+    Ok(())
+}
+
+#[derive(Clone, Debug)]
+pub struct CallLogEntry {
+    /// "in" | "out"
+    pub direction: String,
+    pub address: String,
+    pub ts: i64,
+    pub duration: i64,
+    /// "answered" | "missed" | "rejected" | "busy" | "cancelled" | "failed"
+    pub outcome: String,
+}
+
+pub fn call_list(limit: i64, offset: i64) -> Result<Vec<CallLogEntry>, String> {
+    let v = request("call.list", &json!({"limit": limit, "offset": offset}), Duration::from_secs(10))?;
+    let arr = v.get("calls").and_then(|m| m.as_array()).ok_or("celld: no calls")?;
+    Ok(arr
+        .iter()
+        .map(|m| CallLogEntry {
+            direction: m.get("direction").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+            address: m.get("address").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+            ts: m.get("ts").and_then(|x| x.as_i64()).unwrap_or(0),
+            duration: m.get("duration").and_then(|x| x.as_i64()).unwrap_or(0),
+            outcome: m.get("outcome").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        })
+        .collect())
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VoiceState {
+    /// The MaVo kernel drivers are loaded on the module.
+    pub drivers_loaded: bool,
+    /// An audio route (bridge + alsaloop) is up right now.
+    pub audio_active: bool,
+}
+
+pub fn voice_status() -> Result<VoiceState, String> {
+    let v = request("voice.status", &json!({}), Duration::from_secs(15))?;
+    Ok(VoiceState {
+        drivers_loaded: v.get("drivers_loaded").and_then(|x| x.as_bool()).unwrap_or(false),
+        audio_active: v.get("audio_active").and_then(|x| x.as_bool()).unwrap_or(false),
+    })
+}
+
+/// Push + insmod the voice runtime on the module (idempotent).
+pub fn voice_load() -> Result<(), String> {
+    request("voice.load", &json!({}), Duration::from_secs(90))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

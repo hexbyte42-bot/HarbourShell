@@ -59,10 +59,11 @@ Priority: optional
 Architecture: arm64
 Depends: libsdl2-2.0-0, libsdl2-image-2.0-0
 Maintainer: hexbyte42-bot
-Description: Cellular app for Cardputer Zero + QDC507 (4G data + SMS)
+Description: Cellular app for Cardputer Zero + QDC507 (4G data, SMS, voice)
  Standalone app (for the official APPLaunch) plus the harbour-celld
  backend daemon. The daemon is shared: Harbour Shell's built-in Cellular
- page talks to the same /run/cell.sock service. Voice is not included yet.
+ page talks to the same /run/cell.sock service. Voice calls run over
+ VoLTE with the MaVo runtime loaded on the module by the daemon.
 EOF
 
 cat > "$STAGE/DEBIAN/postinst" <<'EOF'
