@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Cellular
+Exec=harbour:cellular
+Icon=icon.png
+Terminal=false
+Type=Application
