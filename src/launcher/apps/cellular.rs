@@ -816,6 +816,14 @@ impl CellularApp {
     fn key_phone(&mut self, key: Keycode, mods: Mod) -> AppAction {
         if self.call.is_some() {
             match key {
+                k if is_enter(k) => {
+                    // Answer from the call screen itself when it shows a
+                    // ringing incoming call — the popup is the primary
+                    // surface, but the keys must work here too.
+                    if matches!(self.call.as_ref().map(|c| &c.phase), Some(cell::CallPhase::Incoming)) {
+                        self.dispatch(Job::Answer);
+                    }
+                }
                 Keycode::Escape => {
                     // Hang up for real; the state poll clears the screen
                     // once the daemon confirms the call is over.
@@ -1606,7 +1614,12 @@ impl CellularApp {
         fs.draw_text(c, LEFT, y + 84, mic, p.ink);
         let dt = if dtmf.is_empty() { "DTMF: [Ready 0-9/*/#]".to_string() } else { format!("DTMF: {dtmf}") };
         fs.draw_text(c, LEFT + 130, y + 84, &dt, p.ink);
-        fs.draw_text(c, LEFT, y + 106, "[Esc] Hang Up   [M] Mute   [0-9] DTMF", p.sec);
+        let hints = if matches!(phase, cell::CallPhase::Incoming) {
+            "[Enter] Answer   [Esc] Decline"
+        } else {
+            "[Esc] Hang Up   [M] Mute   [0-9] DTMF"
+        };
+        fs.draw_text(c, LEFT, y + 106, hints, p.sec);
     }
 
     fn draw_message_list(&mut self, c: &mut Canvas<Window>, ctx: &Ctx) {
