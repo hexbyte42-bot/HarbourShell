@@ -87,7 +87,15 @@ pub fn decode_entities(s: &str) -> String {
     while let Some(i) = rest.find('&') {
         out.push_str(&rest[..i]);
         rest = &rest[i..];
-        let end = rest[..rest.len().min(12)].find(';');
+        // The lookahead window must end on a char boundary: slicing at byte 12
+        // panics when it falls inside a multi-byte char (CJK text after an entity).
+        // Backing off to the nearest boundary costs at most 3 single-byte checks
+        // and never hides a ';', which is ASCII and so ends on a boundary itself.
+        let mut lim = rest.len().min(12);
+        while !rest.is_char_boundary(lim) {
+            lim -= 1;
+        }
+        let end = rest[..lim].find(';');
         let decoded = end.and_then(|e| {
             let name = &rest[1..e];
             let ch = match name {
@@ -372,6 +380,16 @@ mod tests {
             let _ = decode_entities(s);
         }
         assert!(parse_news("<html><body>Not a feed</body></html>").items.is_empty());
+    }
+
+    #[test]
+    fn entity_before_cjk_never_panics() {
+        // Regression: byte 12 of the lookahead landed inside '大' (bytes 11..14 of
+        // the suffix starting at '&') and the slice panicked on CJK feeds.
+        assert_eq!(decode_entities("&ldquo;abcd大"), "\"abcd大");
+        assert_eq!(decode_entities("&#8217;xyz中文"), "’xyz中文");
+        assert_eq!(decode_entities("大 &amp; 大"), "大 & 大");
+        assert_eq!(decode_entities("fish&chips中文"), "fish&chips中文");
     }
 
     #[test]
