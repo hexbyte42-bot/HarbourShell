@@ -579,6 +579,10 @@ fn main() -> Result<(), String> {
         let mut st = status.lock().map(|s| s.clone()).unwrap_or_default();
         st.time = chrono::Local::now().format("%H:%M").to_string();
         st.bar_style = cfg.lock().map(|c| c.get_int("harbour_statusbar", 0)).unwrap_or(0).clamp(0, 2) as u8;
+        // The app paints only its widgets; the host owns the background
+        // (the shell does the same via draw_desktop before drawing an app).
+        // Without this, previous frames ghost through on tab switches.
+        chrome::draw_desktop(&mut canvas, &tm);
         chrome::draw_menu_bar(&mut canvas, &mut assets, &fs, &tm, &app.title(), &st);
         app.draw(&mut canvas, &mut assets, &ctx);
         if let Some(m) = &app_menu {
