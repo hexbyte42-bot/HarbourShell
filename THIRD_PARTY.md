@@ -8,8 +8,9 @@ is in [NOTICE](NOTICE). Audit details and open decisions: [docs/LEGAL-AUDIT.md](
 
 | file | author | licence | licence text in repo | links |
 |---|---|---|---|---|
-| `shnmk12.bdf`, `shnm6x12r.bdf` | Yasuyuki Furukawa (original, 2000), maintained by /efont/ (Electronic Font Open Laboratory) | Public domain (stated in the font headers) | yes: `Shinonome-LICENSE.txt` (EUC-JP original text) | http://openlab.ring.gr.jp/efont/ (historic site), https://ja.wikipedia.org/wiki/%E6%9D%B1%E9%9B%B2%E3%83%95%E3%82%A9%E3%83%B3%E3%83%88 |
-| `mplus_f12r.bdf`, `mplus_j12r.bdf` (+ generated `src/generated/mplus_f12r.rs`) | COZ (M+ FONTS PROJECT), (C) 2002-2004 | "Free software; unlimited permission to use, copy, distribute, with or without modification, commercially or not", as is | yes: `MPlus-LICENSE.txt` (also in each file's header) | https://mplusfonts.github.io/ , https://osdn.net/projects/mplus-fonts/ |
+| `shnm6x12r.bdf` | Yasuyuki Furukawa (original, 2000), maintained by /efont/ (Electronic Font Open Laboratory) | Public domain (stated in the font headers) | yes: `Shinonome-LICENSE.txt` (EUC-JP original text) | http://openlab.ring.gr.jp/efont/ (historic site), https://ja.wikipedia.org/wiki/%E6%9D%B1%E9%9B%B2%E3%83%95%E3%82%A9%E3%83%B3%E3%83%88 |
+| `mplus_f12r.bdf` (+ generated `src/generated/mplus_f12r.rs`) | COZ (M+ FONTS PROJECT), (C) 2002-2004 | "Free software; unlimited permission to use, copy, distribute, with or without modification, commercially or not", as is | yes: `MPlus-LICENSE.txt` (also in each file's header) | https://mplusfonts.github.io/ , https://osdn.net/projects/mplus-fonts/ |
+| `fusion-pixel-12px-zh_hk.bdf` | TakWolf and contributors (Fusion Pixel Font; stitched from Ark Pixel, Cubic 11, Galmuri and others) | SIL Open Font License 1.1 | yes: `FusionPixel-OFL.txt` | https://github.com/TakWolf/fusion-pixel-font |
 | `ChiKareGo2.fnt` | Giles Booth (original TTF); `.fnt` is a format conversion by `tools/gen_chikarego.py` | Creative Commons Attribution (version not stated by the source) | summary + source in `ChiKareGo2-LICENSE.txt`; the CC BY legal text is **not** bundled | https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/?id=3780 , https://creativecommons.org/licenses/by/4.0/ |
 | `Cavs.fnt` | kurogedelic (own, Chicago-like face) | All Rights Reserved (artwork; see below) | `LICENSE-ARTWORK.txt` | - |
 
