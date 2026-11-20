@@ -516,8 +516,8 @@ fn table_is_sorted_unique_and_kana_only() {
 // ---- fonts: every character the engine can produce must have a glyph -------------------------
 
 #[test]
-fn every_committable_character_has_a_shinonome_glyph() {
-    let font = crate::bdf::BdfFont::load("assets/fonts/shnmk12.bdf").expect("Shinonome 12x12 (run from the crate root)");
+fn every_committable_character_has_a_glyph() {
+    let font = crate::bdf::BdfFont::load("assets/fonts/fusion-pixel-12px-zh_hk.bdf").expect("Fusion Pixel 12px (run from the crate root)");
     let mut chars: std::collections::BTreeSet<char> = Default::default();
     for (_, v) in romaji::all_entries() {
         for c in v.chars() {
@@ -538,19 +538,18 @@ fn every_committable_character_has_a_shinonome_glyph() {
         if c.is_ascii() {
             continue;
         }
-        let ok = crate::jis::unicode_to_jis(c).and_then(|j| font.glyph_jis(j)).is_some();
+        let ok = font.glyph_unicode(c as u32).is_some();
         if !ok {
             missing.push(c);
         }
     }
-    assert!(missing.is_empty(), "no glyph in Shinonome 12x12 for: {missing:?}");
+    assert!(missing.is_empty(), "no glyph in Fusion Pixel 12px for: {missing:?}");
 }
 
 #[test]
 fn spot_check_the_characters_the_plan_names() {
-    let font = crate::bdf::BdfFont::load("assets/fonts/shnmk12.bdf").unwrap();
+    let font = crate::bdf::BdfFont::load("assets/fonts/fusion-pixel-12px-zh_hk.bdf").unwrap();
     for c in "あいうえおアイウエオー・、。「」～ヴｱｶﾞ･".chars() {
-        let j = crate::jis::unicode_to_jis(c).unwrap_or_else(|| panic!("{c} has no JIS X 0208 mapping"));
-        assert!(font.glyph_jis(j).is_some(), "{c}");
+        assert!(font.glyph_unicode(c as u32).is_some(), "{c}");
     }
 }

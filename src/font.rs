@@ -190,8 +190,9 @@ thread_local! {
 
 pub struct FontSystem {
     pub font: Option<UnicodeFont>,
-    /// 日本語 BDF（JIS X 0208）。Latin-1 にない文字のフォールバック。
-    pub jis_font: Option<crate::bdf::BdfFont>,
+    /// Wide-char BDF (Fusion Pixel 12px, Unicode-encoded). Fallback for every
+    /// character the Latin faces lack.
+    pub cjk_font: Option<crate::bdf::BdfFont>,
     /// 日本語フォントのピクセル幅（M+ J12R = 12）。
     pub jis_width: u32,
     /// 日本語フォントのピクセル高（M+ J12R = 13）。
@@ -214,7 +215,7 @@ impl FontSystem {
     pub fn new() -> Self {
         FontSystem {
             font: None,
-            jis_font: None,
+            cjk_font: None,
             jis_width: 12,
             jis_height: 13,
             display: None,
@@ -262,22 +263,23 @@ impl FontSystem {
         self.font = Some(font);
     }
 
-    /// 日本語 BDF をロード。パスは assets/fonts/ 以下の BDF。
-    pub fn load_jis_font(&mut self, path: &str) -> Result<(), String> {
+    /// Wide-char BDF をロード。パスは assets/fonts/ 以下の BDF。
+    /// The font is Unicode-encoded: glyphs are looked up by code point directly.
+    pub fn load_cjk_font(&mut self, path: &str) -> Result<(), String> {
         let bdf = crate::bdf::BdfFont::load(path)?;
-        println!("[font] loaded JIS BDF: {} ({} glyphs)", path, bdf.len());
-        self.jis_font = Some(bdf);
+        println!("[font] loaded CJK BDF: {} ({} glyphs)", path, bdf.len());
+        self.cjk_font = Some(bdf);
         Ok(())
     }
 
-    /// 1文字の表示幅を返す。日本語（JIS X 0208 対象）は jis_width、
+    /// 1文字の表示幅を返す。Wide-char フォントにグリフがある文字はそのグリフ幅、
     /// それ以外は Latin-1 フォント幅。
     pub fn char_width(&self, ch: char) -> i32 {
         if let Some(g) = self.body_latin.as_ref().filter(|_| ch.is_ascii()).and_then(|l| l.glyph_unicode(ch as u32)) {
             return g.width as i32;
         }
-        if crate::jis::unicode_to_jis(ch).is_some() && self.jis_font.is_some() {
-            self.jis_width as i32
+        if let Some(g) = self.cjk_font.as_ref().and_then(|f| f.glyph_unicode(ch as u32)) {
+            g.width as i32
         } else {
             self.font.as_ref().map(|f| f.width as i32).unwrap_or(6)
         }
@@ -286,7 +288,7 @@ impl FontSystem {
     pub fn draw_text(&self, c: &mut Canvas<Window>, x: i32, y: i32, text: &str, color: Color) {
         let mut cursor_x = x;
         // ASCII from Shinonome 6x12 with proportional spacing and kerning, everything else
-        // through the Japanese / M+ fallback.
+        // through the wide-char (Fusion Pixel) / M+ fallback.
         if self.body_latin.is_some() {
             self.layout(Some(c), x, y, text, color);
             return;
@@ -329,25 +331,23 @@ impl FontSystem {
     }
 
     fn plain_width(&self, ch: char) -> i32 {
-        if crate::jis::unicode_to_jis(ch).is_some() && self.jis_font.is_some() {
-            self.jis_width as i32
+        if let Some(g) = self.cjk_font.as_ref().and_then(|f| f.glyph_unicode(ch as u32)) {
+            g.width as i32
         } else {
             self.font.as_ref().map(|f| f.width as i32).unwrap_or(6)
         }
     }
 
-    /// Japanese glyphs (Shinonome) and the M+ Latin-1 fallback; returns the width drawn.
+    /// Wide glyphs (Fusion Pixel) and the M+ Latin-1 fallback; returns the width drawn.
     fn draw_text_plain(&self, c: &mut Canvas<Window>, x: i32, y: i32, text: &str, color: Color) -> i32 {
         let mut cursor_x = x;
         for ch in text.chars() {
-            // まず日本語フォントで描けるか試す
-            if let Some(jis_code) = crate::jis::unicode_to_jis(ch) {
-                if let Some(ref jf) = self.jis_font {
-                    if let Some(glyph) = jf.glyph_jis(jis_code) {
-                        self.draw_jis_glyph(c, cursor_x, y + self.jis_dy, glyph, color);
-                        cursor_x += glyph.width as i32;
-                        continue;
-                    }
+            // まず wide-char フォントで描けるか試す（Unicode で直接引く）
+            if let Some(ref jf) = self.cjk_font {
+                if let Some(glyph) = jf.glyph_unicode(ch as u32) {
+                    self.draw_jis_glyph(c, cursor_x, y + self.jis_dy, glyph, color);
+                    cursor_x += glyph.width as i32;
+                    continue;
                 }
             }
             // フォールバック: Latin-1 フォント
