@@ -1,0 +1,10 @@
+prefix=/usr
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: SDL2_image
+Description: SDL2 image loading library
+Version: 2.8.8
+Requires: sdl2
+Libs: -L${libdir} -lSDL2_image
+Cflags: -I${includedir}

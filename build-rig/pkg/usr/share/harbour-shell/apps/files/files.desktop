@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Files
+Name[ja]=ファイル
+Exec=harbour:files
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=file

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Radio
+Name[ja]=ラジオ
+Exec=harbour:radio
+Icon=icon.png
+Terminal=false
+Type=Application

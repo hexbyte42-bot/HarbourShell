@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Voice Memo
+Name[ja]=ボイスメモ
+Exec=harbour:voicememo
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=recorder;rec;voicerecorder

@@ -1,0 +1,16 @@
+Package: harbour-shell
+Version: 0.1.0+fix3
+Section: utils
+Priority: optional
+Architecture: arm64
+Depends: libsdl2-2.0-0, libsdl2-image-2.0-0
+Replaces: harbour-launcher
+Conflicts: harbour-launcher
+Recommends: network-manager, pipewire, wireplumber, bluez
+Maintainer: kurogedelic
+Description: Harbour Shell for the M5Stack Cardputer Zero
+ A replacement home screen for the official APPLaunch. It lists the same
+ .desktop apps, runs them, and offers its own Settings, Terminal and tools.
+ The official launcher stays installed; use harbourctl to switch.
+ .
+ Unofficial build with the Infoscope UTF-8 entity-decoding panic fixed.

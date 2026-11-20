@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Text Editor
+Name[ja]=テキスト
+Exec=harbour:texteditor
+Icon=icon.png
+Terminal=false
+Type=Application

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Terminal
+Name[ja]=ターミナル
+Exec=harbour:terminal
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=cli

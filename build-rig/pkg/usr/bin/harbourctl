@@ -1,0 +1,93 @@
+#!/bin/sh
+# harbourctl - switch the Cardputer Zero between Harbour Shell and the
+# official APPLaunch. Works over SSH. The official launcher is never removed.
+#
+#   harbourctl status     show which launcher runs / starts at boot
+#   harbourctl try        run Harbour now; the next boot still uses the official one
+#   harbourctl official   run the official launcher now (Harbour stays enabled if it was)
+#   harbourctl enable     make Harbour the launcher at boot (and start it now)
+#   harbourctl disable    go back to the official launcher at boot (and start it now)
+#   harbourctl ime-install   ask, then download + convert the optional Japanese input dictionary
+#   harbourctl ime-remove    delete the dictionary (ime-forget also deletes the learning history)
+#   harbourctl ime-status
+#
+# Harbour Launcher was the old name (harbour-launcher.service, ~/harbour-launcher). `status` shows
+# that unit too while it exists; `try` and `enable` retire it once Harbour Shell runs.
+set -eu
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+HB=harbour-shell.service
+OLD=harbour-launcher.service
+OLD_DEST="$HOME/harbour-launcher"
+UD="$HOME/.config/systemd/user"
+OFF=APPLaunch.service
+sc() { systemctl --user "$@"; }
+active() { sc is-active --quiet "$1" && echo running || echo stopped; }
+enabled() { sc is-enabled --quiet "$1" 2>/dev/null && echo yes || echo no; }
+has_old() { sc cat "$OLD" >/dev/null 2>&1; }
+# Remove the old user unit and install dir once it has stopped (the new unit's Conflicts= stops it).
+retire_old() {
+  [ -e "$UD/$OLD" ] || return 0
+  sc is-active --quiet "$OLD" && return 0
+  sc disable "$OLD" 2>/dev/null || true
+  rm -f "$UD/$OLD"; rm -rf "$UD/$OLD.d"
+  sc daemon-reload; sc reset-failed "$OLD" 2>/dev/null || true
+  if [ -d "$OLD_DEST" ] && [ -d "$HOME/harbour-shell" ]; then
+    rm -rf "$OLD_DEST/bin" "$OLD_DEST/assets" "$OLD_DEST/apps" "$OLD_DEST/fonts" "$OLD_DEST/ime_install.sh"
+    rmdir "$OLD_DEST" 2>/dev/null || mv "$OLD_DEST" "$HOME/harbour-shell/from-harbour-launcher"
+  fi
+  echo "Removed the old Harbour Launcher unit."
+}
+
+case "${1:-status}" in
+  status)
+    echo "Harbour Shell     : $(active $HB)  (starts at boot: $(enabled $HB))"
+    has_old && echo "Harbour Launcher  : $(active $OLD)  (starts at boot: $(enabled $OLD))  old name; install_user.sh migrates it"
+    echo "Official APPLaunch: $(active $OFF)  (starts at boot: $(enabled $OFF))"
+    ;;
+  try)
+    sc reset-failed "$HB" 2>/dev/null || true
+    sc start "$HB"          # Conflicts= stops the official launcher
+    retire_old
+    echo "Harbour is running. 'harbourctl official' goes back."
+    ;;
+  official)
+    sc reset-failed "$OFF" 2>/dev/null || true
+    sc start "$OFF"         # Conflicts= stops Harbour
+    echo "Official launcher is running."
+    ;;
+  enable)
+    sc disable "$OFF" 2>/dev/null || true
+    sc enable "$HB"
+    sc reset-failed "$HB" 2>/dev/null || true
+    sc start "$HB"
+    sc disable "$OLD" 2>/dev/null || true
+    retire_old
+    echo "Harbour is now the launcher at boot."
+    if [ ! -f /etc/systemd/system/harbour-splash-release.service ]; then
+      for f in /usr/share/harbour-shell/install_system.sh "$HOME/harbour-shell/../harbour-bundle/install_system.sh"; do
+        [ -f "$f" ] && { echo "Once, so the boot logo does not stay in front of Harbour:"; echo "  sudo sh $f"; break; }
+      done
+    fi
+    ;;
+  disable)
+    sc disable "$HB" 2>/dev/null || true
+    sc disable "$OLD" 2>/dev/null || true
+    sc enable "$OFF"
+    sc reset-failed "$OFF" 2>/dev/null || true
+    sc start "$OFF"
+    echo "The official launcher is the launcher at boot."
+    ;;
+  ime-install|ime-remove|ime-forget|ime-status)
+    IMS=
+    for d in "$HOME/harbour-shell" /usr/share/harbour-shell; do
+      [ -f "$d/ime_install.sh" ] && { IMS="$d/ime_install.sh"; break; }
+    done
+    [ -n "$IMS" ] || { echo "ime_install.sh not found (is Harbour installed?)" >&2; exit 1; }
+    sub=${1#ime-}
+    exec sh "$IMS" "$sub"
+    ;;
+  *)
+    echo "usage: harbourctl {status|try|official|enable|disable|ime-install|ime-remove|ime-forget|ime-status}" >&2
+    exit 2
+    ;;
+esac

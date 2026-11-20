@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Music
+Name[ja]=音楽
+Exec=harbour:music
+Icon=icon.png
+Terminal=false
+Type=Application

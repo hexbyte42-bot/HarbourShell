@@ -1,0 +1,10 @@
+M+ bitmap fonts (mplus_f12r.bdf, mplus_j12r.bdf) - Copyright (C) 2002-2004 COZ
+(M+ FONTS PROJECT, https://mplusfonts.github.io/ , bitmap fonts archive:
+https://osdn.net/projects/mplus-fonts/ )
+
+The licence text carried in the font files themselves (COMMENT lines at the top of each .bdf):
+
+  This font is a free software.
+  Unlimited permission is granted to use, copy, and distribute it,
+  with or without modification, either commercially and noncommercially.
+  THIS FONT IS PROVIDED "AS IS" WITHOUT WARRANTY.

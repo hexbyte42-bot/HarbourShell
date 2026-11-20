@@ -1,0 +1,14 @@
+[Unit]
+Description=Release the boot splash (fb_load) once Harbour Shell is running
+# fb_load keeps the LCD until the official APPLaunch or LaunchWizard starts. When Harbour is the
+# launcher neither does, so the splash would stay in front of Harbour. This waits for Harbour and
+# then stops fb_load.
+After=fb_load.service
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'while ! pgrep -x harbour-shell >/dev/null; do sleep 0.5; done; sleep 0.5; systemctl stop fb_load.service'
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

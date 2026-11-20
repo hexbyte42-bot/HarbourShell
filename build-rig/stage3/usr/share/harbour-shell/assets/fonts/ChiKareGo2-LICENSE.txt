@@ -1,0 +1,7 @@
+ChiKareGo2 by Giles Booth
+Source: https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/?id=3780 (BitFontMaker2 gallery)
+License stated on that page: Creative Commons Attribution (version not stated).
+
+assets/fonts/ChiKareGo2.fnt is generated from the TTF by tools/gen_chikarego.py (glyph bitmaps rendered at the
+font's 16 px grid, cropped to a 12-row cell, one advance per glyph). The original design is Giles Booth's;
+the conversion changes only the file format.

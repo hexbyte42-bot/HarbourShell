@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Settings
+Name[ja]=設定
+Exec=harbour:settings
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=setting

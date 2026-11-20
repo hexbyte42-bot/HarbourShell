@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Monitor
+Name[ja]=モニタ
+Exec=harbour:monitor
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=systemmonitor

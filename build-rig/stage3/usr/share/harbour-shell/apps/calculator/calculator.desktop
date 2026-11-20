@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Calculator
+Name[ja]=電卓
+Exec=harbour:calculator
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=math

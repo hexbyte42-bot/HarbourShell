@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Images
+Name[ja]=画像
+Exec=harbour:images
+Icon=icon.png
+Terminal=false
+Type=Application
+X-Harbour-Aliases=image

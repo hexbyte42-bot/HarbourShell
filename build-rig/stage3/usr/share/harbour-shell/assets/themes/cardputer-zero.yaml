@@ -1,0 +1,28 @@
+# Cardputer Zero - warm orange phosphor desktop.
+# Ink (dark brown), muted brown, two close oranges (the desktop is drawn as
+# faint scanlines of background/shadow), and cream paper for windows and menus.
+name: cardputer-zero
+colors:
+  palette:
+    - "#2B1400"   # ink / selected background
+    - "#8F4A12"   # separators / hints / title stripes
+    - "#F39A3A"   # desktop
+    - "#FFE9BE"   # window and menu paper
+  background: "#F39A3A"
+  foreground: "#2B1400"
+  primary: "#2B1400"
+  secondary: "#8F4A12"
+  accent: "#2B1400"
+  muted: "#8F4A12"
+  highlight: "#2B1400"
+  shadow: "#E78A28"     # second scanline tone of the desktop
+  topbar_bg: "#FFE9BE"
+  widget_face: "#FFE9BE"
+  widget_face_active: "#FFE9BE"
+  widget_outline: "#2B1400"
+  widget_outline_dim: "#8F4A12"
+  widget_highlight: "#FFE9BE"
+  widget_shadow: "#2B1400"   # drop shadow and screen corners
+  titlebar_stripe_a: "#8F4A12"
+  titlebar_stripe_b: "#FFE9BE"
+  icon_white: "#FFD9A0"   # the white of icons: brightest tone (light themes) or a lifted background (dark themes)

@@ -1,0 +1,76 @@
+# Third-party material
+
+What is in this repository that somebody else made, who they are, under which licence, and where the
+licence text lives. Rust crates are in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) (generated). The overview
+is in [NOTICE](NOTICE). Audit details and open decisions: [docs/LEGAL-AUDIT.md](docs/LEGAL-AUDIT.md).
+
+## Fonts (`assets/fonts/`)
+
+| file | author | licence | licence text in repo | links |
+|---|---|---|---|---|
+| `shnmk12.bdf`, `shnm6x12r.bdf` | Yasuyuki Furukawa (original, 2000), maintained by /efont/ (Electronic Font Open Laboratory) | Public domain (stated in the font headers) | yes: `Shinonome-LICENSE.txt` (EUC-JP original text) | http://openlab.ring.gr.jp/efont/ (historic site), https://ja.wikipedia.org/wiki/%E6%9D%B1%E9%9B%B2%E3%83%95%E3%82%A9%E3%83%B3%E3%83%88 |
+| `mplus_f12r.bdf`, `mplus_j12r.bdf` (+ generated `src/generated/mplus_f12r.rs`) | COZ (M+ FONTS PROJECT), (C) 2002-2004 | "Free software; unlimited permission to use, copy, distribute, with or without modification, commercially or not", as is | yes: `MPlus-LICENSE.txt` (also in each file's header) | https://mplusfonts.github.io/ , https://osdn.net/projects/mplus-fonts/ |
+| `ChiKareGo2.fnt` | Giles Booth (original TTF); `.fnt` is a format conversion by `tools/gen_chikarego.py` | Creative Commons Attribution (version not stated by the source) | summary + source in `ChiKareGo2-LICENSE.txt`; the CC BY legal text is **not** bundled | https://www.pentacom.jp/pentacom/bitfontmaker2/gallery/?id=3780 , https://creativecommons.org/licenses/by/4.0/ |
+| `Cavs.fnt` | kurogedelic (own, Chicago-like face) | All Rights Reserved (artwork; see below) | `LICENSE-ARTWORK.txt` | - |
+
+Not Apple's Chicago: the project ships no Apple font. ChiKareGo2 is an independent redraw in Chicago's style.
+
+## Data
+
+| item | source | licence | links |
+|---|---|---|---|
+| `src/launcher/worldmap_data.rs` (rasterised coastline) | Natural Earth 110m land, via `tools/gen_worldmap.py` | Public domain | https://www.naturalearthdata.com/about/terms-of-use/ |
+| time-zone rules | IANA tz database, compiled in by the `chrono-tz` crate | Public domain (tzdb); crate MIT OR Apache-2.0 | https://www.iana.org/time-zones , https://github.com/chronotope/chrono-tz |
+| `city()` table in `src/launcher/worldclock.rs` (names, coordinates) | the author's list of major cities; coordinates are facts | n/a | - |
+| `src/generated/jis_table.rs` | computed from Python's CP932 codec by `tools/gen_jis_table.py` (JIS X 0208 mapping is a standard table) | n/a | - |
+
+## Input method (`src/ime/`, `src/launcher/ime_glue.rs`)
+
+The built-in Japanese input method (romaji to kana, and the dictionary engine that reads a user-installed file) is **original code** written for this
+project under the MPL-2.0. It uses no third-party input-method code and no romaji tables or key bindings copied from Mozc,
+libkkc, SKK, Anthy or any other project; no dictionary is part of the repository (see the next heading). The romaji table is
+generated from consonant rows plus a short list of irregular spellings; the sounds are facts of Japanese romanisation
+(Hepburn / Kunrei / common loan-word spellings). The half-width katakana and full-width forms use the Unicode and JIS X 0208
+repertoires, which are standards.
+
+### Dictionary (Phase 2): third-party data the user downloads; **not** in this repository, the bundle or the .deb
+
+Kanji conversion uses a dictionary that **the user chooses to download at install time** (`packaging/ime_install.sh`, via
+`install_user.sh` or `harbourctl ime-install`; the question defaults to No). Nothing of it is committed, bundled or packaged. This project
+ships only the **generator** (`src/ime/dict.rs`, `src/bin/harbour_ime_dict.rs`, original code) and the licence text. The downloaded data is
+converted on the device into `~/.local/share/harbour/ime/harbour-ime.dic` (a changed form of the vocabulary, readings and costs; part-of-speech
+ids and connection data are dropped) and the downloaded text is deleted.
+
+| item | source | licence | links |
+|---|---|---|---|
+| Mozc OSS dictionary data (`dictionary00.txt` ... `dictionary09.txt`), fetched at install time from Mozc commit `3cf2d38553835f9241479d3b42c7d408c8f45076`, sha256 pinned in `packaging/ime_install.sh` | Google Mozc `src/data/dictionary_oss/`. In substance IPAdic (NAIST) plus Google additions and the Okinawa dictionary | Mozc: BSD-3-Clause. Dictionary data: NAIST dictionary licence (credit + disclaimer), the ICOT-derived part with its NO WARRANTY clause, Okinawa dictionary in the public domain. **The full text is `assets/ime/Mozc-LICENSE.txt`**, copied verbatim from the pinned commit's `LICENSE` (sha256 `44cdd923...a648c`) and copied next to the generated dictionary | https://github.com/google/mozc/blob/3cf2d38553835f9241479d3b42c7d408c8f45076/LICENSE , https://github.com/google/mozc/blob/3cf2d38553835f9241479d3b42c7d408c8f45076/src/data/dictionary_oss/README.txt |
+| `assets/ime/Mozc-LICENSE.txt` | the licence text above, unmodified | as above | as above |
+| (never bundled, never downloaded) SKK-JISYO files | not used by this phase | GPL v2 or later | https://github.com/skk-dev/dict |
+| (considered, not adopted) Sudachi, UniDic | - | Apache-2.0; BSD / GPL / LGPL triple licence | https://github.com/WorksApplications/SudachiDict , https://clrd.ninjal.ac.jp/unidic/en/download_en.html |
+
+"Mozc" and "Google" are not used to promote this project; the feature is called "Harbour Japanese input". The learning history
+(`~/.local/share/harbour/ime/learn`) is the user's own typing, stays on the device and is never sent anywhere.
+
+No new Rust crate was added for the dictionary (memory mapping uses the `libc` crate already in use; no EUC-JP decoding is needed since SKK is not read).
+
+## Artwork (`assets/images/`, the images in `apps/`, `assets/atlas/`, `assets/fonts/Cavs.fnt`, `docs/screenshots/`)
+
+Drawn by kurogedelic. **All Rights Reserved** (not MPL): finished assets only, for use as part of this project; see
+[LICENSE-ARTWORK.txt](LICENSE-ARTWORK.txt). The drawing sources (`assets/icons-src/`, `assets/statusbar-src/`, prototype
+icons) are kept private and are not in the repository or the packages.
+
+Third-party app tiles are generated at runtime from the apps' own icons and are not stored.
+
+## Runtime programs (not bundled)
+
+Harbour Shell calls these if they are installed; they are separate programs under their own licences:
+SDL2 and SDL2_image (zlib, https://libsdl.org/), `curl`, `lynx` (GPL-2.0, https://lynx.invisible-island.net/),
+`rpicam-vid`/`libcamera-vid`, NetworkManager/BlueZ/ALSA tools. The Debian package only *depends on* SDL2 and SDL2_image.
+The optional Muse integration talks to Meta's `musegadget` service over a local socket; the Muse SDK (Apache-2.0) and
+tokens are **not** bundled (see `docs/MUSE.md`).
+
+## Compatibility
+
+Harbour Shell parses `.desktop` files with the same rules as M5Stack's APPLaunch (MIT); only the file-format rules
+were taken over, not code. All Rust crates are MIT, Apache-2.0, Zlib or Unlicense/BSL-1.0 style, which MPL-2.0
+projects may link and redistribute; keep their notices when distributing binaries.

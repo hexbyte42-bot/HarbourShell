@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Calendar
+Name[ja]=カレンダ
+Exec=harbour:calendar
+Icon=icon.png
+Terminal=false
+Type=Application

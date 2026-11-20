@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Camera
+Name[ja]=カメラ
+Exec=harbour:camera
+Icon=icon.png
+Terminal=false
+Type=Application

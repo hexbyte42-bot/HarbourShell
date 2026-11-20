@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Interceptor
+Exec=harbour:interceptor
+Icon=icon.png
+Terminal=false
+Type=Application

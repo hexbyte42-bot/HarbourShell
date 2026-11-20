@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Paint
+Name[ja]=ペイント
+Exec=harbour:paint
+Icon=icon.png
+Terminal=false
+Type=Application
