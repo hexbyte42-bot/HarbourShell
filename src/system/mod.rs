@@ -5,6 +5,7 @@
 //! The UI only talks to the [`Backend`] trait, so it runs unchanged on a Mac
 //! with [`mock::MockBackend`].
 
+pub mod cell;
 pub mod config;
 pub mod linux;
 pub mod mock;
@@ -26,6 +27,28 @@ pub struct WifiStatus {
     pub ip: Option<String>,
     /// 0..=100
     pub signal: Option<u8>,
+}
+
+/// Cellular state from `harbour-celld` (see [`cell`]). `present` is false
+/// when the daemon is not reachable (no module / daemon not running).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CellStatus {
+    pub present: bool,
+    pub registered: bool,
+    /// Friendly operator name ("China Unicom"), from the MCC+MNC code.
+    pub operator: Option<String>,
+    /// e.g. "FDD LTE"
+    pub tech: Option<String>,
+    /// e.g. "LTE BAND 3"
+    pub band: Option<String>,
+    /// Signal bars 0..=4; `None` when no measurement exists.
+    pub bars: Option<u8>,
+    pub rsrp: Option<i32>,
+    /// The PDP context is active (mobile data on).
+    pub data_on: bool,
+    pub ip: Option<String>,
+    /// First global IPv6 address on the data interface, if any.
+    pub ipv6: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -92,6 +115,15 @@ pub trait Backend: Send + Sync {
     /// Blocking: call from a worker thread.
     fn wifi_connect(&self, ssid: &str, password: Option<&str>) -> R<()>;
     fn eth_ip(&self) -> Option<String>;
+
+    /// Cellular status via `harbour-celld`; default: no module present.
+    fn cell_status(&self) -> CellStatus {
+        CellStatus::default()
+    }
+    /// Switch the cellular PDP context. Blocking: call from a worker thread.
+    fn cell_set_data(&self, _on: bool) -> R<()> {
+        Err("cellular not available".into())
+    }
 
     fn bt_powered(&self) -> bool;
     fn bt_set_power(&self, on: bool) -> R<()>;
