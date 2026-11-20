@@ -294,6 +294,41 @@ pub fn voice_load() -> Result<(), String> {
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// The daemon's systemd unit
+// ---------------------------------------------------------------------------
+
+/// True when the daemon has bound its socket (it may still be bringing
+/// the modem up; this is only the "is the process there" probe).
+pub fn socket_up() -> bool {
+    UnixStream::connect(SOCK).is_ok()
+}
+
+/// Start the `harbour-celld` service. The UI runs unprivileged; the
+/// package ships a sudoers rule covering exactly the start/stop verbs
+/// for this one unit.
+pub fn service_start() -> Result<(), String> {
+    systemctl("start")
+}
+
+/// Stop the `harbour-celld` service (see [`service_start`]).
+pub fn service_stop() -> Result<(), String> {
+    systemctl("stop")
+}
+
+fn systemctl(verb: &str) -> Result<(), String> {
+    let out = std::process::Command::new("sudo")
+        .args(["-n", "/usr/bin/systemctl", verb, "harbour-celld.service"])
+        .output()
+        .map_err(|e| format!("systemctl {verb}: {e}"))?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        let err = String::from_utf8_lossy(&out.stderr);
+        Err(format!("systemctl {verb} harbour-celld: {}", err.trim()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

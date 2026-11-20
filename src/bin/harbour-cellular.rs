@@ -49,6 +49,7 @@ use harbour_shell::launcher::apps;
 use harbour_shell::launcher::packages;
 use harbour_shell::launcher::widgets::{self, AppMenu, Pointer};
 use harbour_shell::platform::display::Display;
+use harbour_shell::system::cell;
 use harbour_shell::platform::keys::{HoldKey, Input, MediaKey};
 use harbour_shell::platform::Shared;
 use harbour_shell::system::config::{self, Config};
@@ -627,6 +628,16 @@ fn main() -> Result<(), String> {
         let elapsed = frame_start.elapsed();
         if elapsed < Duration::from_millis(33) {
             std::thread::sleep(Duration::from_millis(33) - elapsed);
+        }
+    }
+    // "Stop daemon on exit" (the app's Settings, on by default): the
+    // daemon is meant to live alongside the app, not forever. Never stop
+    // it under an active call — the daemon owns the audio route, so the
+    // call would go down with it.
+    if apps::cellular::stop_daemon_on_exit() {
+        let in_call = matches!(cell::call_state(), Ok(s) if s.phase != cell::CallPhase::Idle);
+        if !in_call {
+            let _ = cell::service_stop();
         }
     }
     shared.quit.store(true, std::sync::atomic::Ordering::Relaxed);

@@ -37,7 +37,7 @@ done
 rm -rf "$STAGE"
 mkdir -p "$STAGE/usr/bin" "$STAGE/usr/share/harbour-cellular/apps" \
          "$STAGE/usr/share/APPLaunch/applications" "$STAGE/usr/share/APPLaunch/share/images" \
-         "$STAGE/usr/lib/systemd/system" \
+         "$STAGE/usr/lib/systemd/system" "$STAGE/etc/sudoers.d" \
          "$STAGE/usr/lib/udev/rules.d" "$STAGE/var/lib/harbour-cell" "$STAGE/DEBIAN"
 
 cp "$CELL_BIN" "$STAGE/usr/bin/harbour-cellular"
@@ -50,6 +50,7 @@ cp packaging/cellular-app/harbour-cellular.desktop "$STAGE/usr/share/APPLaunch/a
 cp apps/cellular/icon.png "$STAGE/usr/share/APPLaunch/share/images/harbour-cellular.png"
 cp packaging/cellular-app/harbour-celld.service "$STAGE/usr/lib/systemd/system/"
 cp packaging/cellular-app/99-harbour-cell.rules "$STAGE/usr/lib/udev/rules.d/"
+cp packaging/cellular-app/harbour-cell.sudoers "$STAGE/etc/sudoers.d/harbour-cell"
 
 cat > "$STAGE/DEBIAN/control" <<EOF
 Package: harbour-cellular
@@ -75,6 +76,7 @@ mkdir -p /var/lib/harbour-cell
 if [ -f /etc/systemd/system/harbour-celld.service ]; then
     rm -f /etc/systemd/system/harbour-celld.service
 fi
+chmod 440 /etc/sudoers.d/harbour-cell || true
 systemctl daemon-reload || true
 systemctl enable harbour-celld.service || true
 systemctl restart harbour-celld.service || true
@@ -87,6 +89,9 @@ chmod 755 "$STAGE/DEBIAN/postinst"
 chmod -R a+rX "$STAGE"
 find "$STAGE" -type d -exec chmod 755 {} +
 chmod 755 "$STAGE/usr/bin/harbour-cellular" "$STAGE/usr/bin/harbour-celld"
+# sudo insists on a root-only sudoers drop-in (the blanket pass above
+# leaves it 444).
+chmod 440 "$STAGE/etc/sudoers.d/harbour-cell"
 
 mkdir -p "$OUTDIR"
 dpkg-deb --build "$STAGE" "$OUTDIR/harbour-cellular_${VERSION}_arm64.deb"

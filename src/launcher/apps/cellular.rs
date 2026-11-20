@@ -311,16 +311,27 @@ enum SetItem {
     SpkGain,
     MicGain,
     Reboot,
+    Daemon,
+    StopOnExit,
 }
 
-const SET_ITEMS: [SetItem; 6] = [
+const SET_ITEMS: [SetItem; 8] = [
     SetItem::Data,
     SetItem::Route,
     SetItem::Voice,
     SetItem::SpkGain,
     SetItem::MicGain,
     SetItem::Reboot,
+    SetItem::Daemon,
+    SetItem::StopOnExit,
 ];
+
+/// Whether the standalone host should stop harbour-celld on its way out
+/// (the "Stop daemon on exit" preference). Read fresh from disk: the host
+/// asks after the app has saved the user's latest toggle.
+pub fn stop_daemon_on_exit() -> bool {
+    Prefs::load().stop_on_exit
+}
 
 /// Persisted UI preferences (~/.config/harbour/cellular.json).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -333,10 +344,18 @@ struct Prefs {
     mic_gain: u8,
     #[serde(default)]
     read_ids: Vec<i64>,
+    /// The standalone host stops harbour-celld when it exits (the daemon
+    /// otherwise runs forever). Default on; the Settings toggle writes it.
+    #[serde(default = "default_true")]
+    stop_on_exit: bool,
 }
 
 fn default_spk() -> u8 {
     70
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_mic() -> u8 {
@@ -345,7 +364,7 @@ fn default_mic() -> u8 {
 
 impl Default for Prefs {
     fn default() -> Prefs {
-        Prefs { route_4g_first: false, spk_gain: 70, mic_gain: 100, read_ids: Vec::new() }
+        Prefs { route_4g_first: false, spk_gain: 70, mic_gain: 100, read_ids: Vec::new(), stop_on_exit: true }
     }
 }
 
@@ -393,6 +412,8 @@ enum Job {
     DeleteCall(i64),
     DeleteThread(String),
     RebootModem,
+    ServiceStart,
+    ServiceStop,
 }
 
 enum Done {
@@ -408,26 +429,45 @@ enum Done {
     VoiceLoaded(Result<(), String>),
     Deleted(&'static str),
     RebootSent,
+    ServiceStopped,
     Failed(String),
+}
+
+/// One full data pull from the daemon (the Refresh payload).
+fn data_done() -> Done {
+    Done::Data {
+        status: cell::status(),
+        messages: cell::sms_list(200, 0),
+        stats: cell::iface_stats("usb0"),
+        calls: cell::call_list(50, 0),
+        voice: cell::voice_status(),
+    }
 }
 
 fn run_job(job: Job) -> Done {
     match job {
-        Job::Refresh => Done::Data {
-            status: cell::status(),
-            messages: cell::sms_list(200, 0),
-            stats: cell::iface_stats("usb0"),
-            calls: cell::call_list(50, 0),
-            voice: cell::voice_status(),
-        },
+        Job::Refresh => data_done(),
         Job::SetData(on) => match cell::set_data(on) {
-            Ok(()) => Done::Data {
-                status: cell::status(),
-                messages: cell::sms_list(200, 0),
-                stats: cell::iface_stats("usb0"),
-                calls: cell::call_list(50, 0),
-                voice: cell::voice_status(),
-            },
+            Ok(()) => data_done(),
+            Err(e) => Done::Failed(e),
+        },
+        Job::ServiceStart => match cell::service_start() {
+            Ok(()) => {
+                // systemctl returns once the unit is started, but the
+                // daemon still has to bind its socket; wait for it so the
+                // refresh below lands on a live daemon.
+                for _ in 0..32 {
+                    if cell::socket_up() {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(250));
+                }
+                data_done()
+            }
+            Err(e) => Done::Failed(e),
+        },
+        Job::ServiceStop => match cell::service_stop() {
+            Ok(()) => Done::ServiceStopped,
             Err(e) => Done::Failed(e),
         },
         Job::Send { to, text } => match cell::sms_send(&to, &text) {
@@ -525,6 +565,9 @@ pub struct CellularApp {
     note_at: Instant,
     last_refresh: Option<Instant>,
     last_tick: Instant,
+    /// One-shot: on the first tick, start the daemon if it is not running
+    /// (it is meant to live alongside the app, not forever).
+    boot_kick: bool,
 }
 
 pub fn make() -> Box<dyn LauncherApp> {
@@ -574,6 +617,7 @@ impl CellularApp {
             note_at: Instant::now(),
             last_refresh: None,
             last_tick: Instant::now(),
+            boot_kick: false,
         }
     }
 
@@ -722,6 +766,11 @@ impl CellularApp {
                 }
                 Done::RebootSent => {
                     self.set_note(&tr_s("Modem rebooting — back in about a minute"));
+                }
+                Done::ServiceStopped => {
+                    self.set_note(&tr_s("Daemon stopped — SMS and calls are paused"));
+                    self.status = Some(CellStatus::default());
+                    self.voice = None;
                 }
                 Done::Failed(e) => {
                     self.set_note(&e);
@@ -1127,6 +1176,21 @@ impl CellularApp {
                     SetItem::Reboot => {
                         self.confirm_reboot = true;
                     }
+                    SetItem::Daemon => {
+                        if self.call.is_some() {
+                            self.set_note(&tr_s("In a call — the daemon must stay up"));
+                        } else if self.status.as_ref().map(|s| s.present).unwrap_or(false) {
+                            self.set_note(&tr_s("Stopping daemon..."));
+                            self.dispatch(Job::ServiceStop);
+                        } else {
+                            self.set_note(&tr_s("Starting daemon..."));
+                            self.dispatch(Job::ServiceStart);
+                        }
+                    }
+                    SetItem::StopOnExit => {
+                        self.prefs.stop_on_exit = !self.prefs.stop_on_exit;
+                        self.prefs.save();
+                    }
                 }
                 AppAction::None
             }
@@ -1346,6 +1410,13 @@ impl LauncherApp for CellularApp {
         if self.last_call_poll.map(|t| t.elapsed() >= Duration::from_secs(1)).unwrap_or(true) {
             self.last_call_poll = Some(Instant::now());
             self.dispatch_bg(Job::CallPoll);
+        }
+        if !self.boot_kick {
+            self.boot_kick = true;
+            if !cell::socket_up() {
+                self.set_note(&tr_s("Starting daemon..."));
+                self.dispatch(Job::ServiceStart);
+            }
         }
         if !self.busy && self.last_refresh.map(|t| t.elapsed() >= REFRESH_EVERY).unwrap_or(true) {
             self.refresh();
@@ -1811,6 +1882,20 @@ impl CellularApp {
             SRow::Item(SetItem::MicGain, "Mic gain".into(), format!("{}%", self.prefs.mic_gain)),
             SRow::Section("MODEM"),
             SRow::Item(SetItem::Reboot, "Reboot modem".into(), String::new()),
+            SRow::Section("DAEMON"),
+            SRow::Item(
+                SetItem::Daemon,
+                "Cell daemon".into(),
+                match st {
+                    Some(s) if s.present => "Running".into(),
+                    _ => "Stopped".into(),
+                },
+            ),
+            SRow::Item(
+                SetItem::StopOnExit,
+                "Stop daemon on exit".into(),
+                if self.prefs.stop_on_exit { "On".into() } else { "Off".into() },
+            ),
         ];
         const SEC_H: i32 = 15;
         const ROW_H: i32 = 13;
