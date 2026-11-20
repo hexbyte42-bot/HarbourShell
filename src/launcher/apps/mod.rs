@@ -8,6 +8,7 @@ use crate::launcher::app::AppDef;
 pub mod browser;
 pub mod camera;
 pub mod calendar;
+pub mod cellular;
 pub mod devices;
 pub mod devtree;
 pub mod files;
@@ -40,6 +41,7 @@ pub const REGISTRY: &[AppDef] = &[
     AppDef { id: "calendar", name: "Calendar", make: calendar::make },
     AppDef { id: "interceptor", name: "Interceptor", make: interceptor::make },
     AppDef { id: "infoscope", name: "Infoscope", make: infoscope::make },
+    AppDef { id: "cellular", name: "Cellular", make: cellular::make },
 ];
 
 #[cfg(test)]
