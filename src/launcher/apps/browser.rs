@@ -438,7 +438,7 @@ impl Browser {
     }
 
     fn metrics(ctx: &Ctx) -> Metrics {
-        Metrics { latin: ctx.fs.font.as_ref().map(|f| f.width as i32).unwrap_or(6), wide: ctx.fs.jis_width as i32, jis: ctx.fs.jis_font.is_some() }
+        Metrics { latin: ctx.fs.font.as_ref().map(|f| f.width as i32).unwrap_or(6), wide: ctx.fs.jis_width as i32, jis: ctx.fs.cjk_font.is_some() }
     }
 
     fn cur_url(&self) -> String {

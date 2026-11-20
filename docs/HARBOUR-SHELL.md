@@ -72,8 +72,9 @@ Each built-in app is a package in `apps/<id>/` (next to `assets/`): `<id>.deskto
 `icon.png`, and `res/` for files only that app uses (loaded as `app/<id>/res/...`). The launcher finds its own apps
 through these files (`src/launcher/packages.rs`); `Exec=harbour:<id>` names code in the binary. Without its
 package an app is not shown (Settings always is). Both the user bundle and the Debian package ship `assets/` and `apps/`. The Latin M+ font table
-is compiled from `src/generated/mplus_f12r.rs`; `assets/fonts/mplus_j12r.bdf` and
-`assets/fonts/{ChiKareGo2,Cavs}.fnt` are loaded at runtime. The old top-level `fonts/`
+is compiled from `src/generated/mplus_f12r.rs`; the wide-char face is
+`assets/fonts/fusion-pixel-12px-zh_hk.bdf` (Fusion Pixel 12px, Unicode-encoded),
+and `assets/fonts/{ChiKareGo2,Cavs}.fnt` are loaded at runtime. The old top-level `fonts/`
 directory is removed during a user-install upgrade.
 
 ## What it does
