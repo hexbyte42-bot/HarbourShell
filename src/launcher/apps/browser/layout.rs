@@ -30,7 +30,36 @@ impl Metrics {
     }
 
     pub fn is_wide(&self, ch: char) -> bool {
-        self.jis && (ch as u32) >= 0x80 && crate::jis::unicode_to_jis(ch).is_some()
+        if !self.jis || (ch as u32) < 0x80 {
+            return false;
+        }
+        // The wide face is Fusion Pixel 12px now (Unicode, not JIS). These are the
+        // ranges it draws on the 12 px full-width grid (measured from the font).
+        matches!(ch,
+            '\u{2070}'..='\u{27FF}'
+            | '\u{2E80}'..='\u{33FF}'
+            | '\u{3400}'..='\u{4DBF}'
+            | '\u{4E00}'..='\u{9FFF}'
+            | '\u{AC00}'..='\u{D7A3}'
+            | '\u{F900}'..='\u{FAFF}'
+            | '\u{FE30}'..='\u{FE6F}'
+            | '\u{FF00}'..='\u{FF60}'
+            | '\u{FFE0}'..='\u{FFE6}'
+            | '\u{20000}'..='\u{2FA1F}')
+    }
+
+    /// True when the wide face has a glyph for `ch` at either width. (Under the old
+    /// JIS face, supported and wide were the same set; Fusion Pixel also covers
+    /// narrow scripts — Greek, Cyrillic, braille, halfwidth kana — at 6 px.)
+    pub fn supported(&self, ch: char) -> bool {
+        self.is_wide(ch)
+            || (self.jis
+                && matches!(ch,
+                    '\u{0100}'..='\u{04FF}'
+                    | '\u{1E00}'..='\u{1EFF}'
+                    | '\u{2000}'..='\u{206F}'
+                    | '\u{2800}'..='\u{28FF}'
+                    | '\u{FF61}'..='\u{FF9F}'))
     }
 
     pub fn char_w(&self, ch: char) -> i32 {
@@ -353,7 +382,7 @@ pub fn fold(m: &Metrics, s: &str) -> String {
             '\u{2022}' | '\u{25CF}' | '\u{25AA}' | '\u{25E6}' | '\u{00B7}' => out.push('*'),
             '\u{00A0}' | '\u{2002}' | '\u{2003}' | '\u{2009}' | '\u{200A}' | '\u{3000}' if !m.is_wide(ch) || ch == '\u{3000}' => out.push('\u{00A0}'),
             '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{FEFF}' | '\u{00AD}' => {}
-            c if (c as u32) > 0xFF && !m.is_wide(c) => out.push('?'),
+            c if (c as u32) > 0xFF && !m.supported(c) => out.push('?'),
             c => out.push(c),
         }
     }

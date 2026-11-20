@@ -416,7 +416,7 @@ mod tests {
     /// Every Japanese character must exist in the body font, or it would draw as a blank box.
     #[test]
     fn every_glyph_exists_in_the_font() {
-        let font = crate::bdf::BdfFont::load("assets/fonts/shnmk12.bdf").expect("shnmk12.bdf");
+        let font = crate::bdf::BdfFont::load("assets/fonts/fusion-pixel-12px-zh_hk.bdf").expect("fusion-pixel-12px-zh_hk.bdf");
         let latin = crate::bdf::BdfFont::load("assets/fonts/shnm6x12r.bdf").expect("shnm6x12r.bdf");
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(crate::launcher::packages::APPS_ROOT);
         let apps: Vec<(String, String)> = crate::launcher::packages::scan(&root).into_iter().filter_map(|p| Some((p.name, p.name_ja?))).collect();
@@ -424,7 +424,7 @@ mod tests {
         pairs.extend(apps.iter().map(|(a, b)| (a.as_str(), b.as_str())));
         for (en, ja) in pairs {
             for ch in ja.chars() {
-                let ok = if ch.is_ascii() { latin.glyph_unicode(ch as u32).is_some() || ch == ' ' } else { crate::jis::unicode_to_jis(ch).and_then(|j| font.glyph_jis(j as u32)).is_some() };
+                let ok = if ch.is_ascii() { latin.glyph_unicode(ch as u32).is_some() || ch == ' ' } else { font.glyph_unicode(ch as u32).is_some() };
                 assert!(ok, "'{ch}' in {en:?} -> {ja:?} has no glyph");
             }
         }
