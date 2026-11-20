@@ -252,6 +252,14 @@ pub fn call_list(limit: i64, offset: i64) -> Result<Vec<CallLogEntry>, String> {
         .collect())
 }
 
+/// Ask the daemon to reset the modem (AT+CFUN=1,1) and restart
+/// itself. The daemon replies before acting; it (and the network)
+/// come back after roughly a minute.
+pub fn modem_reboot() -> Result<(), String> {
+    request("modem.reboot", &json!({}), Duration::from_secs(10))?;
+    Ok(())
+}
+
 pub fn call_delete(id: i64) -> Result<(), String> {
     request("call.delete", &json!({"id": id}), Duration::from_secs(10))?;
     Ok(())

@@ -392,6 +392,7 @@ enum Job {
     CallPoll,
     DeleteCall(i64),
     DeleteThread(String),
+    RebootModem,
 }
 
 enum Done {
@@ -406,6 +407,7 @@ enum Done {
     CallState(Result<cell::CallState, String>),
     VoiceLoaded(Result<(), String>),
     Deleted(&'static str),
+    RebootSent,
     Failed(String),
 }
 
@@ -460,6 +462,10 @@ fn run_job(job: Job) -> Done {
         Job::CallPoll => Done::CallState(cell::call_state()),
         Job::DeleteCall(id) => match cell::call_delete(id) {
             Ok(()) => Done::Deleted("Call record deleted"),
+            Err(e) => Done::Failed(e),
+        },
+        Job::RebootModem => match cell::modem_reboot() {
+            Ok(()) => Done::RebootSent,
             Err(e) => Done::Failed(e),
         },
         Job::DeleteThread(addr) => match cell::sms_delete_address(&addr) {
@@ -713,6 +719,9 @@ impl CellularApp {
                 Done::Deleted(msg) => {
                     self.set_note(&tr_s(msg));
                     self.refresh();
+                }
+                Done::RebootSent => {
+                    self.set_note(&tr_s("Modem rebooting — back in about a minute"));
                 }
                 Done::Failed(e) => {
                     self.set_note(&e);
@@ -1247,7 +1256,8 @@ impl LauncherApp for CellularApp {
         if self.confirm_reboot {
             if is_enter(key) {
                 self.confirm_reboot = false;
-                self.set_note(&tr_s("Modem reboot is not wired yet"));
+                self.set_note(&tr_s("Rebooting modem..."));
+                self.dispatch(Job::RebootModem);
             } else if key == Keycode::Escape {
                 self.confirm_reboot = false;
             }
