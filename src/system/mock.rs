@@ -109,6 +109,23 @@ impl Backend for MockBackend {
     fn eth_ip(&self) -> Option<String> {
         None
     }
+    fn cell_status(&self) -> super::CellStatus {
+        super::CellStatus {
+            present: true,
+            registered: true,
+            operator: Some("China Unicom".into()),
+            tech: Some("FDD LTE".into()),
+            band: Some("LTE BAND 3".into()),
+            bars: Some(3),
+            rsrp: Some(-97),
+            data_on: true,
+            ip: Some("192.168.225.21".into()),
+            ipv6: Some("2408:8440:b50::21".into()),
+        }
+    }
+    fn cell_set_data(&self, _on: bool) -> R<()> {
+        Ok(())
+    }
     fn bt_powered(&self) -> bool {
         self.s.lock().unwrap().bt_on
     }

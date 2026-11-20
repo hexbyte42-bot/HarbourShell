@@ -227,6 +227,15 @@ impl Backend for LinuxBackend {
         }
     }
 
+    fn cell_status(&self) -> super::CellStatus {
+        // The daemon answers on a local socket; absent daemon = no module.
+        super::cell::status().unwrap_or_default()
+    }
+
+    fn cell_set_data(&self, on: bool) -> R<()> {
+        super::cell::set_data(on)
+    }
+
     fn eth_ip(&self) -> Option<String> {
         let out = run("nmcli", &["-g", "IP4.ADDRESS", "dev", "show", "eth0"], SHORT).ok()?;
         out.lines().next().map(|l| l.split('/').next().unwrap_or("").to_string()).filter(|s| !s.is_empty())
