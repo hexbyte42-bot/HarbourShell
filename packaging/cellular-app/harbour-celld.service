@@ -1,0 +1,13 @@
+[Unit]
+Description=Cellular daemon (QDC507: 4G data + SMS) for Harbour Cellular / Harbour Shell
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/harbour-celld --device /dev/cell-at --sock /run/cell.sock --db /var/lib/harbour-cell/cell.db --iface usb0
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
