@@ -1,0 +1,3 @@
+# harbour-cellular: the unprivileged Cellular UI may start and stop its
+# own backend daemon (Settings -> DAEMON), and nothing else.
+pi ALL=(root) NOPASSWD: /usr/bin/systemctl start harbour-celld.service, /usr/bin/systemctl stop harbour-celld.service
